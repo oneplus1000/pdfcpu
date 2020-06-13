@@ -17,6 +17,9 @@ limitations under the License.
 package test
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/md5"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,10 +30,86 @@ import (
 	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 var inDir, outDir, resDir string
+
+func TestSameHash(t *testing.T) {
+	src := "/Users/oneplus/Desktop/ebook/love.pdf"
+	dest := "/Users/oneplus/Desktop/ebook/love_out1.pdf"
+	dest2 := "/Users/oneplus/Desktop/ebook/love_out2.pdf"
+
+	//src := "/Users/oneplus/Desktop/ebook/pdf_from_chrome_50_win10.pdf"
+	//dest := "/Users/oneplus/Desktop/ebook/pdf_from_chrome_50_win10_out2.pdf"
+	cfg := pdfcpu.NewRC4Configuration("1111", "1111", 128)
+	createDate, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+	cfg.ForceCreationDate = &createDate
+
+	err := api.EncryptFile(src, dest, cfg)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+	h, _ := hashMd5(dest)
+	fmt.Printf("A:%x\n", h)
+
+	err = api.EncryptFile(src, dest2, cfg)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+	h2, _ := hashMd5(dest2)
+	fmt.Printf("B:%x\n", h2)
+	diff(dest, dest2)
+}
+
+func diff(a, b string) error {
+	af, err := os.Open(a)
+	if err != nil {
+		return err
+	}
+	defer af.Close()
+	bf, err := os.Open(b)
+	if err != nil {
+		return err
+	}
+	defer bf.Close()
+
+	abuff := bufio.NewReader(af)
+	bbuff := bufio.NewReader(bf)
+	_ = bbuff
+	i := 1
+	for {
+		lineA, _, err := abuff.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		lineB, _, err := bbuff.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if bytes.Compare(lineA, lineB) != 0 {
+			if strings.Contains(string(lineA), "0 obj") || strings.Contains(string(lineA), "0 R") {
+				fmt.Printf("%d:%s\n", i, lineA)
+				fmt.Printf("%d:%s\n", i, lineB)
+			}
+			break
+		}
+		i++
+	}
+	return nil
+}
+
+func hashMd5(f string) (string, error) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return "", err
+	}
+	h := md5.Sum(data)
+	return fmt.Sprintf("%+x", h), nil
+}
 
 func TestMain(m *testing.M) {
 	inDir = "../../testdata"

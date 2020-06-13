@@ -515,7 +515,9 @@ func writeDirectObject(ctx *Context, o Object) error {
 	switch o := o.(type) {
 
 	case Dict:
-		for k, v := range o {
+		keys := o.SortedKeys()
+		for _, k := range keys {
+			v := o[k]
 			if ctx.writingPages && (k == "Dest" || k == "D") {
 				ctx.dest = true
 			}
@@ -566,8 +568,9 @@ func writeDeepDict(ctx *Context, d Dict, objNr, genNr int) error {
 	if err != nil {
 		return err
 	}
-
-	for k, v := range d {
+	keys := d.SortedKeys()
+	for _, k := range keys {
+		v := d[k]
 		if ctx.writingPages && (k == "Dest" || k == "D") {
 			ctx.dest = true
 		}
@@ -594,8 +597,9 @@ func writeDeepStreamDict(ctx *Context, sd *StreamDict, objNr, genNr int) error {
 	if err != nil {
 		return err
 	}
-
-	for _, v := range sd.Dict {
+	keys := sd.Dict.SortedKeys()
+	for _, k := range keys {
+		v := sd.Dict[k]
 		_, _, err = writeDeepObject(ctx, v)
 		if err != nil {
 			return err

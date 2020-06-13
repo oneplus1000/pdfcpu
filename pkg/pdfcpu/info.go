@@ -29,9 +29,9 @@ func csvSafeString(s string) string {
 
 // handleInfoDict extracts relevant infoDict fields into the context.
 func handleInfoDict(ctx *Context, d Dict) (err error) {
-
-	for key, value := range d {
-
+	keys := d.SortedKeys()
+	for _, key := range keys {
+		value := d[key]
 		switch key {
 
 		case "Title":
@@ -95,8 +95,11 @@ func ensureInfoDict(ctx *Context) error {
 	// CreationDate	        modified by pdfcpu
 	// ModDate		        modified by pdfcpu
 	// Trapped              -
-
-	now := DateString(time.Now())
+	dtNow := time.Now()
+	if ctx.Configuration.ForceCreationDate != nil {
+		dtNow = *ctx.Configuration.ForceCreationDate
+	}
+	now := DateString(dtNow)
 
 	v := "pdfcpu " + VersionStr
 

@@ -625,7 +625,9 @@ func (xRefTable *XRefTable) deleteObject(o Object) error {
 	switch o := o.(type) {
 
 	case Dict:
-		for _, v := range o {
+		keys := o.SortedKeys()
+		for _, k := range keys {
+			v := o[k]
 			err := xRefTable.deleteObject(v)
 			if err != nil {
 				return err
@@ -633,7 +635,9 @@ func (xRefTable *XRefTable) deleteObject(o Object) error {
 		}
 
 	case StreamDict:
-		for _, v := range o.Dict {
+		keys := o.Dict.SortedKeys()
+		for _, k := range keys {
+			v := o.Dict[k]
 			err := xRefTable.deleteObject(v)
 			if err != nil {
 				return err

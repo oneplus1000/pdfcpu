@@ -514,3 +514,13 @@ func (d Dict) StringEntryBytes(key string) ([]byte, error) {
 
 	return nil, nil
 }
+
+// SortedKeys return(s) slice of key that sorted
+func (d Dict) SortedKeys() []string {
+	var keys []string
+	for k := range d {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}

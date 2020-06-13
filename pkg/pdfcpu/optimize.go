@@ -651,7 +651,9 @@ func traverseObjectGraphAndMarkDuplicates(xRefTable *XRefTable, obj Object, dupl
 
 	case Dict:
 		log.Optimize.Println("traverseObjectGraphAndMarkDuplicates: dict.")
-		for _, value := range x {
+		keys := x.SortedKeys()
+		for _, k := range keys {
+			value := x[k]
 			if err := traverse(xRefTable, value, duplObjs); err != nil {
 				return err
 			}
@@ -659,7 +661,9 @@ func traverseObjectGraphAndMarkDuplicates(xRefTable *XRefTable, obj Object, dupl
 
 	case StreamDict:
 		log.Optimize.Println("traverseObjectGraphAndMarkDuplicates: streamDict.")
-		for _, value := range x.Dict {
+		keys := x.Dict.SortedKeys()
+		for _, k := range keys {
+			value := x.Dict[k]
 			if err := traverse(xRefTable, value, duplObjs); err != nil {
 				return err
 			}
@@ -1047,8 +1051,9 @@ func calcBinarySizes(ctx *Context) error {
 }
 
 func fixDeepDict(ctx *Context, d Dict, objNr, genNr int) error {
-
-	for k, v := range d {
+	keys := d.SortedKeys()
+	for _, k := range keys {
+		v := d[k]
 		ir, err := fixDeepObject(ctx, v)
 		if err != nil {
 			return err
@@ -1081,7 +1086,9 @@ func fixDirectObject(ctx *Context, o Object) error {
 	switch o := o.(type) {
 
 	case Dict:
-		for k, v := range o {
+		keys := o.SortedKeys()
+		for _, k := range keys {
+			v := o[k]
 			ir, err := fixDeepObject(ctx, v)
 			if err != nil {
 				return err

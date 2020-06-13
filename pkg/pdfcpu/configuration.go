@@ -16,6 +16,8 @@ limitations under the License.
 
 package pdfcpu
 
+import "time"
+
 const (
 	// ValidationStrict ensures 100% compliance with the spec (PDF 32000-1:2008).
 	ValidationStrict int = iota
@@ -142,6 +144,9 @@ type Configuration struct {
 
 	// Chosen units for outputting paper sizes.
 	Units DisplayUnit
+
+	// Pdf Create date
+	ForceCreationDate *time.Time
 }
 
 // NewDefaultConfiguration returns the default pdfcpu configuration.

@@ -1074,7 +1074,9 @@ func encrypt(m map[string]Object, k string, v Object, objNr, genNr int, key []by
 
 func encryptDict(d Dict, objNr, genNr int, key []byte, needAES bool, r int) error {
 
-	for k, v := range d {
+	keys := d.SortedKeys()
+	for _, k := range keys {
+		v := d[k]
 		err := encrypt(d, k, v, objNr, genNr, key, needAES, r)
 		if err != nil {
 			return err
@@ -1326,8 +1328,12 @@ func fileID(ctx *Context) (HexLiteral, error) {
 
 	h := md5.New()
 
-	// Current timestamp.
-	h.Write([]byte(time.Now().String()))
+	if ctx.Configuration.ForceCreationDate == nil {
+		// Current timestamp.
+		h.Write([]byte(time.Now().String()))
+	} else {
+		h.Write([]byte(ctx.Configuration.ForceCreationDate.String()))
+	}
 
 	// File location - ignore, we don't have this.
 
@@ -1340,7 +1346,9 @@ func fileID(ctx *Context) (HexLiteral, error) {
 		return "", err
 	}
 
-	for _, v := range d {
+	keys := d.SortedKeys()
+	for _, k := range keys {
+		v := d[k]
 		o, err := ctx.Dereference(v)
 		if err != nil {
 			return "", err
