@@ -543,7 +543,8 @@ func (xRefTable *XRefTable) EnsureValidFreeList() error {
 	// insert remaining free objects into verified linked list
 	// unless they are forever deleted with generation 65535.
 	// In that case they have to point to obj 0.
-	for i := range m {
+	keys := m.SortedKeys()
+	for _, i := range keys {
 
 		entry, found := xRefTable.FindTableEntryLight(i)
 		if !found {

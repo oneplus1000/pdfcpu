@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -63,6 +64,16 @@ func (b ByteSize) String() string {
 
 // IntSet is a set of integers.
 type IntSet map[int]bool
+
+// SortedKeys return(s) slice of key that sorted
+func (is IntSet) SortedKeys() []int {
+	var keys []int
+	for k := range is {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	return keys
+}
 
 // StringSet is a set of strings.
 type StringSet map[string]bool
