@@ -36,6 +36,16 @@ import (
 
 var inDir, outDir, resDir string
 
+func TestAnalyze(t *testing.T) {
+	src := "/Users/oneplus/Desktop/ebook/as.pdf"
+	//src := "/Users/oneplus/Desktop/ebook/image.pdf"
+	_, err := api.AnalyzeFile(src)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+}
+
 func TestSameHash(t *testing.T) {
 	src := "/Users/oneplus/Desktop/ebook/as.pdf"
 	dest := "/Users/oneplus/Desktop/ebook/as_out1.pdf"
@@ -44,8 +54,10 @@ func TestSameHash(t *testing.T) {
 	//src := "/Users/oneplus/Desktop/ebook/pdf_from_chrome_50_win10.pdf"
 	//dest := "/Users/oneplus/Desktop/ebook/pdf_from_chrome_50_win10_out2.pdf"
 	cfg := pdfcpu.NewRC4Configuration("1111", "1111", 128)
-	createDate, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:05Z")
+	createDate, _ := time.Parse(time.RFC3339, "2006-01-02T15:04:01Z")
 	cfg.ForceCreationDate = &createDate
+	fc := "b25lcGx1czEwMDA="
+	cfg.ForceCreator = &fc
 
 	err := api.EncryptFile(src, dest, cfg)
 	if err != nil {
@@ -254,7 +266,7 @@ func TestManipulateContext(t *testing.T) {
 func TestInfo(t *testing.T) {
 	msg := "TestInfo"
 	inFile := filepath.Join(inDir, "5116.DCT_Filter.pdf")
-
+	inFile = "/Users/oneplus/Downloads/response(1).pdf"
 	if _, err := api.InfoFile(inFile, nil); err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}

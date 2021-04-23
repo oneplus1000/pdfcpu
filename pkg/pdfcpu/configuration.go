@@ -147,6 +147,9 @@ type Configuration struct {
 
 	// Pdf Create date
 	ForceCreationDate *time.Time
+
+	// Creator
+	ForceCreator *string
 }
 
 // NewDefaultConfiguration returns the default pdfcpu configuration.

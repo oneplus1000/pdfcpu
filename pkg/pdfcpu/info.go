@@ -109,7 +109,6 @@ func ensureInfoDict(ctx *Context) error {
 		d.InsertString("Producer", v)
 		d.InsertString("CreationDate", now)
 		d.InsertString("ModDate", now)
-
 		ir, err := ctx.IndRefForNewObject(d)
 		if err != nil {
 			return err
@@ -133,6 +132,9 @@ func ensureInfoDict(ctx *Context) error {
 	d.Update("CreationDate", StringLiteral(now))
 	d.Update("ModDate", StringLiteral(now))
 	d.Update("Producer", StringLiteral(v))
+	if ctx.Configuration.ForceCreator != nil {
+		d.Update("Creator", StringLiteral(*ctx.Configuration.ForceCreator))
+	}
 
 	return nil
 }

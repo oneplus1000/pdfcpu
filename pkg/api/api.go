@@ -45,6 +45,7 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/log"
 	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/validate"
+	"github.com/pdfcpu/pdfcpu/pkg/types"
 	"github.com/pkg/errors"
 )
 
@@ -1900,4 +1901,47 @@ func CollectFile(inFile, outFile string, selectedPages []string, conf *pdf.Confi
 	}()
 
 	return Collect(f1, f2, selectedPages, conf)
+}
+
+func AnalyzeFile(inFile string) (*types.AnalyzeResult, error) {
+	f, err := os.Open(inFile)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		f.Close()
+	}()
+
+	return Analyze(f)
+}
+
+func Analyze(rs io.ReadSeeker) (*types.AnalyzeResult, error) {
+	conf := pdf.NewDefaultConfiguration()
+	conf.Cmd = pdf.EXTRACTIMAGES
+	ctx, _, _, err := readAndValidate(rs, conf, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	result, err := pdf.AnalyzeContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+	/*
+		fromStart := time.Now()
+		ctx, _, _, _, err := readValidateAndOptimize(rs, conf, fromStart)
+		if err != nil {
+			return nil, fmt.Errorf("readValidateAndOptimize(rs, conf, fromStart) fail %w", err)
+		}
+		if err := ctx.EnsurePageCount(); err != nil {
+			return nil, err
+		}
+		_, err = pdf.AnalyzeContext(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("pdf.AnalyzeContext(ctx) fail %w", err)
+		}
+	*/
+	//fmt.Printf("%+v", len(ctx.Optimize.PageImages))
+	//return nil, nil
 }
