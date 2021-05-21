@@ -1928,20 +1928,28 @@ func Analyze(rs io.ReadSeeker) (*types.AnalyzeResult, error) {
 		return nil, err
 	}
 	return result, nil
-	/*
-		fromStart := time.Now()
-		ctx, _, _, _, err := readValidateAndOptimize(rs, conf, fromStart)
-		if err != nil {
-			return nil, fmt.Errorf("readValidateAndOptimize(rs, conf, fromStart) fail %w", err)
-		}
-		if err := ctx.EnsurePageCount(); err != nil {
-			return nil, err
-		}
-		_, err = pdf.AnalyzeContext(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("pdf.AnalyzeContext(ctx) fail %w", err)
-		}
-	*/
-	//fmt.Printf("%+v", len(ctx.Optimize.PageImages))
-	//return nil, nil
+}
+
+func ReadAndValidateFile(inFile string) (*types.ReadAndValidateResult, error) {
+	f, err := os.Open(inFile)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		f.Close()
+	}()
+	return ReadAndValidate(f)
+}
+
+func ReadAndValidate(rs io.ReadSeeker) (*types.ReadAndValidateResult, error) {
+
+	conf := pdf.NewDefaultConfiguration()
+	ctx, _, _, err := readAndValidate(rs, conf, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	result := types.ReadAndValidateResult{}
+	result.PageCount = ctx.PageCount
+	return &result, nil
 }

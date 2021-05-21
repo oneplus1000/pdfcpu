@@ -36,6 +36,18 @@ import (
 
 var inDir, outDir, resDir string
 
+func TestReadAndValidate(t *testing.T) {
+	src := filepath.Join(inDir, "5116.DCT_Filter.pdf")
+	result, err := api.ReadAndValidateFile(src)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+	if result.PageCount != 52 {
+		t.Errorf("result.PageCount")
+	}
+}
+
 func TestAnalyze(t *testing.T) {
 	src := "/Users/oneplus/Desktop/ebook/as.pdf"
 	//src := "/Users/oneplus/Desktop/ebook/image.pdf"

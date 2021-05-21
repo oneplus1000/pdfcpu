@@ -13,7 +13,7 @@ func AnalyzeContext(ctx *Context) (*types.AnalyzeResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
-	return nil, nil
+	return &result, nil
 }
 
 func analyze(ctx *Context, result *types.AnalyzeResult) error {
