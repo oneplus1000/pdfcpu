@@ -47,16 +47,6 @@ func TestReadAndValidate(t *testing.T) {
 	}
 }
 
-func TestAnalyze(t *testing.T) {
-	src := "/Users/oneplus/Desktop/ebook/as.pdf"
-	//src := "/Users/oneplus/Desktop/ebook/image.pdf"
-	_, err := api.AnalyzeFile(src)
-	if err != nil {
-		fmt.Printf("%v", err)
-		os.Exit(1)
-	}
-}
-
 func TestSameHash(t *testing.T) {
 	src := "/Users/oneplus/Desktop/ebook/as.pdf"
 	dest := "/Users/oneplus/Desktop/ebook/as_out1.pdf"

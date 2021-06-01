@@ -102,6 +102,7 @@ const (
 	LISTBOXES
 	ADDBOXES
 	REMOVEBOXES
+	DRAWLINES
 )
 
 // Configuration of a Context.
