@@ -655,7 +655,7 @@ func validateNameTreeDictLimitsEntry(xRefTable *pdf.XRefTable, d pdf.Dict, first
 	if !ok {
 		fk, _ := a[0].(pdf.HexLiteral)
 		//bb, _ := fk.Bytes()
-		//	fmt.Printf("fk: %v %s\n", bb, string(bb))
+		//fmt.Printf("fk: %v %s\n", bb, string(bb))
 		fkv = fk.Value()
 	} else {
 		fkv = fk.Value()
@@ -671,8 +671,8 @@ func validateNameTreeDictLimitsEntry(xRefTable *pdf.XRefTable, d pdf.Dict, first
 		lkv = lk.Value()
 	}
 
-	if firstKey != fkv || lastKey != lkv {
-		return errors.Errorf("pdfcpu: validateNameTreeDictLimitsEntry: leaf node corrupted\n")
+	if firstKey < fkv || lastKey > lkv {
+		return errors.Errorf("pdfcpu: validateNameTreeDictLimitsEntry: leaf node corrupted (firstKey: %s vs %s) (lastKey: %s vs %s)\n", firstKey, fkv, lastKey, lkv)
 	}
 
 	return nil

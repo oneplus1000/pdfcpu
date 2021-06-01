@@ -56,7 +56,7 @@ type flate struct {
 }
 
 // Encode implements encoding for a Flate filter.
-func (f flate) Encode(r io.Reader) (*bytes.Buffer, error) {
+func (f flate) Encode(r io.Reader) (io.Reader, error) {
 
 	log.Trace.Println("EncodeFlate begin")
 
@@ -76,7 +76,7 @@ func (f flate) Encode(r io.Reader) (*bytes.Buffer, error) {
 }
 
 // Decode implements decoding for a Flate filter.
-func (f flate) Decode(r io.Reader) (*bytes.Buffer, error) {
+func (f flate) Decode(r io.Reader) (io.Reader, error) {
 
 	log.Trace.Println("DecodeFlate begin")
 
@@ -151,16 +151,23 @@ func validateRowFilter(f, p int) error {
 	return nil
 }
 
-func processRow(pr, cr []byte, p, bytesPerPixel int) ([]byte, error) {
+func applyHorDiff(row []byte, colors int) ([]byte, error) {
+	// This works for 8 bits per color only.
+	for i := 1; i < len(row)/colors; i++ {
+		for j := 0; j < colors; j++ {
+			row[i*colors+j] += row[(i-1)*colors+j]
+		}
+	}
+	return row, nil
+}
+
+func processRow(pr, cr []byte, p, colors, bytesPerPixel int) ([]byte, error) {
 
 	//fmt.Printf("pr(%v) =\n%s\n", &pr, hex.Dump(pr))
 	//fmt.Printf("cr(%v) =\n%s\n", &cr, hex.Dump(cr))
 
 	if p == PredictorTIFF {
-		for i := 1; i < len(cr); i++ {
-			cr[i] += cr[i-1]
-		}
-		return cr, nil
+		return applyHorDiff(cr, colors)
 	}
 
 	// Apply the filter.
@@ -172,10 +179,6 @@ func processRow(pr, cr []byte, p, bytesPerPixel int) ([]byte, error) {
 
 	// The value of Predictor supplied by the decoding filter need not match the value
 	// used when the data was encoded if they are both greater than or equal to 10.
-	// err := validateRowFilter(f, p)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	switch f {
 
@@ -232,6 +235,8 @@ func (f flate) parameters() (colors, bpc, columns int, err error) {
 		bpc = 8
 	} else if !intMemberOf(bpc, []int{1, 2, 4, 8, 16}) {
 		return 0, 0, 0, errors.Errorf("pdfcpu: filter FlateDecode: Unexpected \"BitsPerComponent\": %d", bpc)
+	} else if bpc != 8 {
+		return 0, 0, 0, errors.New("pdfcpu: filter FlateDecode: \"BitsPerComponent\" must be 8")
 	}
 
 	// Columns, int
@@ -245,7 +250,7 @@ func (f flate) parameters() (colors, bpc, columns int, err error) {
 }
 
 // decodePostProcess
-func (f flate) decodePostProcess(r io.Reader) (*bytes.Buffer, error) {
+func (f flate) decodePostProcess(r io.Reader) (io.Reader, error) {
 
 	predictor, found := f.parms["Predictor"]
 	if !found || predictor == PredictorNo {
@@ -303,7 +308,7 @@ func (f flate) decodePostProcess(r io.Reader) (*bytes.Buffer, error) {
 			return nil, errors.Errorf("pdfcpu: filter FlateDecode: read error, expected %d bytes, got: %d", rowSize, n)
 		}
 
-		d, err1 := processRow(pr, cr, predictor, bytesPerPixel)
+		d, err1 := processRow(pr, cr, predictor, colors, bytesPerPixel)
 		if err1 != nil {
 			return nil, err1
 		}

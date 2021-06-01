@@ -26,14 +26,22 @@ import (
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/cli"
-	PDFCPULog "github.com/pdfcpu/pdfcpu/pkg/log"
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/log"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 var inDir, outDir, resDir, fontDir string
 
+func imageFileNames(t *testing.T, dir string) []string {
+	t.Helper()
+	fn, err := pdfcpu.ImageFileNames(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fn
+}
 func TestMain(m *testing.M) {
-	inDir = "../../testdata"
+	inDir = filepath.Join("..", "..", "testdata")
 	resDir = filepath.Join(inDir, "resources")
 	fontDir = filepath.Join(inDir, "fonts")
 	var err error
@@ -89,7 +97,7 @@ func allPDFs(t *testing.T, dir string) []string {
 	return ff
 }
 
-func validateFile(t *testing.T, fileName string, conf *pdf.Configuration) error {
+func validateFile(t *testing.T, fileName string, conf *pdfcpu.Configuration) error {
 	t.Helper()
 	_, err := cli.Process(cli.ValidateCommand(fileName, conf))
 	return err
@@ -100,7 +108,7 @@ func TestValidate(t *testing.T) {
 	for _, f := range allPDFs(t, inDir) {
 		inFile := filepath.Join(inDir, f)
 		if err := validateFile(t, inFile, nil); err != nil {
-			t.Fatalf("%s: %v\n", msg, err)
+			t.Fatalf("%s: %s: %v\n", msg, inFile, err)
 		}
 	}
 }
@@ -122,7 +130,7 @@ func TestInfoCommand(t *testing.T) {
 	msg := "TestInfoCommand"
 	inFile := filepath.Join(inDir, "5116.DCT_Filter.pdf")
 
-	cmd := cli.InfoCommand(inFile, nil)
+	cmd := cli.InfoCommand(inFile, nil, nil)
 	if _, err := cli.Process(cmd); err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
@@ -130,7 +138,7 @@ func TestInfoCommand(t *testing.T) {
 
 func TestUnknownCommand(t *testing.T) {
 	msg := "TestUnknownCommand"
-	conf := pdf.NewDefaultConfiguration()
+	conf := pdfcpu.NewDefaultConfiguration()
 	inFile := filepath.Join(outDir, "go.pdf")
 
 	cmd := &cli.Command{
@@ -147,15 +155,15 @@ func TestUnknownCommand(t *testing.T) {
 func XTestSomeCommand(t *testing.T) {
 	msg := "TestSomeCommand"
 
-	PDFCPULog.SetDefaultTraceLogger()
-	//PDFCPULog.SetDefaultParseLogger()
-	PDFCPULog.SetDefaultReadLogger()
-	PDFCPULog.SetDefaultValidateLogger()
-	PDFCPULog.SetDefaultOptimizeLogger()
-	PDFCPULog.SetDefaultWriteLogger()
-	//PDFCPULog.SetDefaultStatsLogger()
+	log.SetDefaultTraceLogger()
+	//log.SetDefaultParseLogger()
+	log.SetDefaultReadLogger()
+	log.SetDefaultValidateLogger()
+	log.SetDefaultOptimizeLogger()
+	log.SetDefaultWriteLogger()
+	//log.SetDefaultStatsLogger()
 
-	conf := pdf.NewDefaultConfiguration()
+	conf := pdfcpu.NewDefaultConfiguration()
 	inFile := filepath.Join(inDir, "test.pdf")
 
 	cmd := cli.ValidateCommand(inFile, conf)

@@ -49,11 +49,19 @@ func validateResourceDict(xRefTable *pdf.XRefTable, o pdf.Object) (hasResources 
 		}
 	}
 
-	// Beginning with PDF V1.4 this feature is considered to be obsolete.
-	//_, err = validateNameArrayEntry(xRefTable, dict, "resourceDict", "ProcSet", OPTIONAL, V10, validateProcedureSetName)
-	//if err != nil {
-	//	return false, nil
-	//}
+	allowedResDictKeys := []string{"ExtGState", "Font", "XObject", "Properties", "ColorSpace", "Pattern", "ProcSet", "Shading"}
+	if xRefTable.ValidationMode == pdf.ValidationRelaxed {
+		allowedResDictKeys = append(allowedResDictKeys, "Encoding")
+		allowedResDictKeys = append(allowedResDictKeys, "ProcSets")
+	}
+
+	// Note: Beginning with PDF V1.4 the "ProcSet" feature is considered to be obsolete!
+
+	for k := range d {
+		if !pdf.MemberOf(k, allowedResDictKeys) {
+			d.Delete(k)
+		}
+	}
 
 	return true, nil
 }
@@ -80,8 +88,7 @@ func validatePageContents(xRefTable *pdf.XRefTable, d pdf.Dict) (hasContents boo
 		// process array of content stream dicts.
 
 		for _, o := range o {
-
-			o, err = xRefTable.DereferenceStreamDict(o)
+			o, _, err = xRefTable.DereferenceStreamDict(o)
 			if err != nil {
 				return false, err
 			}
@@ -110,7 +117,7 @@ func validatePageResources(xRefTable *pdf.XRefTable, d pdf.Dict, hasResources, h
 
 	// TODO Check if contents need resources (#169)
 	// if !hasResources && hasContents {
-	// 	return errors.New("pdfcpu: validatePageResources: missing required entry \"Resources\" - should be inheritated")
+	// 	return errors.New("pdfcpu: validatePageResources: missing required entry \"Resources\" - should be inherited")
 	// }
 
 	return nil
@@ -893,10 +900,9 @@ func validateResources(xRefTable *pdf.XRefTable, d pdf.Dict) (hasResources bool,
 	return validateResourceDict(xRefTable, o)
 }
 
-func validatePagesDict(xRefTable *pdf.XRefTable, d pdf.Dict, objNumber, genNumber int, hasResources, hasMediaBox bool) error {
+func validatePagesDict(xRefTable *pdf.XRefTable, d pdf.Dict, objNr, genNumber int, hasResources, hasMediaBox bool) error {
 
 	// Resources and Mediabox are inherited.
-	//var dHasResources, dHasMediaBox bool
 	dHasResources, dHasMediaBox, err := validatePagesDictGeneralEntries(xRefTable, d)
 	if err != nil {
 		return err
@@ -938,6 +944,12 @@ func validatePagesDict(xRefTable *pdf.XRefTable, d pdf.Dict, objNumber, genNumbe
 			return err
 		}
 
+		// Validate this kid's parent.
+		parentIndRef := pageNodeDict.IndirectRefEntry("Parent")
+		if parentIndRef.ObjectNumber.Value() != objNr {
+			return errors.New("pdfcpu: validatePagesDict: corrupt parent node")
+		}
+
 		dictType, err := dictTypeForPageNodeDict(pageNodeDict)
 		if err != nil {
 			return err
@@ -948,19 +960,17 @@ func validatePagesDict(xRefTable *pdf.XRefTable, d pdf.Dict, objNumber, genNumbe
 		case "Pages":
 			// Recurse over pagetree
 			err = validatePagesDict(xRefTable, pageNodeDict, objNumber, genNumber, hasResources, hasMediaBox)
-			if err != nil {
-				return err
-			}
 
 		case "Page":
 			err = validatePageDict(xRefTable, pageNodeDict, objNumber, genNumber, hasResources, hasMediaBox)
-			if err != nil {
-				return err
-			}
 
 		default:
 			return errors.Errorf("pdfcpu: validatePagesDict: Unexpected dict type: %s", dictType)
 
+		}
+
+		if err != nil {
+			return err
 		}
 
 	}

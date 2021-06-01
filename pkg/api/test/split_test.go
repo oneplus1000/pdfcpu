@@ -40,19 +40,49 @@ func TestSplitSpan2(t *testing.T) {
 	fileName := "Acroforms2.pdf"
 	inFile := filepath.Join(inDir, fileName)
 
+	// Create dual page files of inFile in outDir.
 	span := 2
 	if err := api.SplitFile(inFile, outDir, span, nil); err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
 }
 
-func TestSplit0ByBookmarkCommand(t *testing.T) {
-	msg := "TestSplit0ByBookmarkCommand"
+func TestSplit0ByBookmark(t *testing.T) {
+	msg := "TestSplit0ByBookmark"
 	fileName := "5116.DCT_Filter.pdf"
 	inFile := filepath.Join(inDir, fileName)
 
-	span := 0 // 0 means we are going to split by bookmarks.
+	// Split along bookmarks.
+	span := 0
 	if err := api.SplitFile(inFile, outDir, span, nil); err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
+	}
+}
+
+func TestSplitLowLevel(t *testing.T) {
+	msg := "TestSplitLowLevel"
+	inFile := filepath.Join(inDir, "TheGoProgrammingLanguageCh1.pdf")
+	outFile := filepath.Join(outDir, "MyExtractedPageSpan.pdf")
+
+	// Create a context.
+	ctx, err := api.ReadContextFile(inFile)
+	if err != nil {
+		t.Fatalf("%s readContext: %v\n", msg, err)
+	}
+
+	// Extract a page span.
+	from, thru := 2, 4
+	selectedPages := api.PagesForPageRange(from, thru)
+	usePgCache := false
+	ctxNew, err := ctx.ExtractPages(selectedPages, usePgCache)
+	if err != nil {
+		t.Fatalf("%s ExtractPages(%d,%d): %v\n", msg, from, thru, err)
+	}
+
+	// Here you can process this single page PDF context.
+
+	// Write context to file.
+	if err := api.WriteContextFile(ctxNew, outFile); err != nil {
+		t.Fatalf("%s write: %v\n", msg, err)
 	}
 }

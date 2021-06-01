@@ -20,24 +20,25 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/cli"
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 func testGrid(t *testing.T, msg string, inFiles []string, outFile string, selectedPages []string, desc string, rows, cols int, isImg bool) {
 	t.Helper()
 
 	var (
-		nup *pdf.NUp
+		nup *pdfcpu.NUp
 		err error
 	)
 
 	if isImg {
-		if nup, err = pdf.ImageGridConfig(rows, cols, desc); err != nil {
+		if nup, err = api.ImageGridConfig(rows, cols, desc); err != nil {
 			t.Fatalf("%s %s: %v\n", msg, outFile, err)
 		}
 	} else {
-		if nup, err = pdf.PDFGridConfig(rows, cols, desc); err != nil {
+		if nup, err = api.PDFGridConfig(rows, cols, desc); err != nil {
 			t.Fatalf("%s %s: %v\n", msg, outFile, err)
 		}
 	}
@@ -65,7 +66,7 @@ func TestGridCommand(t *testing.T) {
 		{"TestGridFromPDF",
 			[]string{filepath.Join(inDir, "Acroforms2.pdf")},
 			filepath.Join(outDir, "testGridFromPDF.pdf"),
-			nil, "f:LegalL", 1, 3, false},
+			nil, "form:LegalL", 1, 3, false},
 
 		{"TestGridFromImages",
 			[]string{
@@ -74,7 +75,7 @@ func TestGridCommand(t *testing.T) {
 				filepath.Join(resDir, "snow.jpg"),
 			},
 			filepath.Join(outDir, "testGridFromImages.pdf"),
-			nil, "d:500 500, m:20, b:off", 1, 3, true},
+			nil, "d:500 500, margin:20, border:off", 1, 3, true},
 	} {
 		testGrid(t, tt.msg, tt.inFiles, tt.outFile, tt.selectedPages, tt.desc, tt.rows, tt.cols, tt.isImg)
 	}

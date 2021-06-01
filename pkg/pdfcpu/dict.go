@@ -38,6 +38,18 @@ func (d Dict) Len() int {
 	return len(d)
 }
 
+// Clone returns a clone of d.
+func (d Dict) Clone() Object {
+	d1 := NewDict()
+	for k, v := range d {
+		if v != nil {
+			v = v.Clone()
+		}
+		d1.Insert(k, v)
+	}
+	return d1
+}
+
 // Insert adds a new entry to this PDFDict.
 func (d Dict) Insert(key string, value Object) (ok bool) {
 	_, found := d.Find(key)
@@ -82,15 +94,12 @@ func (d Dict) Find(key string) (value Object, found bool) {
 
 // Delete deletes the Object for given key.
 func (d Dict) Delete(key string) (value Object) {
-
 	value, found := d.Find(key)
 	if !found {
 		return nil
 	}
-
 	delete(d, key)
-
-	return
+	return value
 }
 
 // Entry returns the value for given key.
@@ -124,7 +133,6 @@ func (d Dict) BooleanEntry(key string) *bool {
 }
 
 // StringEntry expects and returns a StringLiteral entry for given key.
-// Unused.
 func (d Dict) StringEntry(key string) *string {
 
 	value, found := d.Find(key)
@@ -504,7 +512,11 @@ func (d Dict) StringEntryBytes(key string) ([]byte, error) {
 
 	s := d.StringLiteralEntry(key)
 	if s != nil {
-		return Unescape(s.Value())
+		bb, err := Unescape(s.Value())
+		if err != nil {
+			return nil, err
+		}
+		return bb, nil
 	}
 
 	h := d.HexLiteralEntry(key)

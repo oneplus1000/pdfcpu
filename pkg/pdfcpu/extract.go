@@ -17,6 +17,8 @@ limitations under the License.
 package pdfcpu
 
 import (
+	"bytes"
+	"io"
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/filter"
@@ -24,12 +26,30 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ExtractImageData extracts image data for objNr.
-// Supported imgTypes: FlateDecode, DCTDecode, JPXDecode
-// TODO: Implementation and usage of these filters: DCTDecode and JPXDecode.
-// TODO: Should an error be returned instead of nil, nil when filters are not supported?
-func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
+// Image is a Reader representing an image resource.
+type Image struct {
+	io.Reader
+	PageNr int
+	Name   string // Resource name
+	Type   string // File type
+}
 
+// ImageObjNrs returns all image dict objNrs for pageNr.
+// Requires an optimized context.
+func (ctx *Context) ImageObjNrs(pageNr int) []int {
+	// TODO Exclude SMask image objects.
+	objNrs := []int{}
+	for k, v := range ctx.Optimize.PageImages[pageNr-1] {
+		if v {
+			objNrs = append(objNrs, k)
+		}
+	}
+	return objNrs
+}
+
+// ExtractImage extracts an image from image dict referenced by objNr.
+// Supported imgTypes: FlateDecode, DCTDecode, JPXDecode
+func (ctx *Context) ExtractImage(objNr int) (*Image, error) {
 	imageObj := ctx.Optimize.ImageObjects[objNr]
 
 	imageDict := imageObj.ImageDict
@@ -47,7 +67,7 @@ func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
 
 	// Ignore filter chains with length > 1
 	if len(fpl) > 1 {
-		log.Info.Printf("extractImageData: ignore obj# %d, more than 1 filter:%s\n", objNr, filters)
+		log.Info.Printf("ExtractImage(%d): skip img with more than 1 filter: %s\n", objNr, filters)
 		return nil, nil
 	}
 
@@ -56,7 +76,7 @@ func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
 	// We do not extract imageMasks with the exception of CCITTDecoded images
 	if im := imageDict.BooleanEntry("ImageMask"); im != nil && *im {
 		if f != filter.CCITTFax {
-			log.Info.Printf("extractImageData: ignore obj# %d, imageMask\n", objNr)
+			log.Info.Printf("ExtractImage(%d): skip img with imageMask\n", objNr)
 			return nil, nil
 		}
 	}
@@ -69,7 +89,7 @@ func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
 
 	// Ignore if image has a Mask defined.
 	if sm, _ := imageDict.Find("Mask"); sm != nil {
-		log.Info.Printf("extractImageData: ignore obj# %d, unsupported \"Mask\"\n", objNr)
+		log.Info.Printf("ExtractImage(%d): skip image, unsupported \"Mask\"\n", objNr)
 		return nil, nil
 	}
 
@@ -85,8 +105,7 @@ func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
 
 	case filter.Flate, filter.CCITTFax:
 		// If color space is CMYK then write .tif else write .png
-		err := decodeStream(imageDict)
-		if err != nil {
+		if err := imageDict.Decode(); err != nil {
 			return nil, err
 		}
 
@@ -97,22 +116,56 @@ func ExtractImageData(ctx *Context, objNr int) (*ImageObject, error) {
 		//imageObj.Extension = "jpx"
 
 	default:
-		log.Debug.Printf("extractImageData: ignore obj# %d filter %s unsupported\n", objNr, filters)
+		log.Debug.Printf("ExtractImage(%d): skip img, filter %s unsupported\n", objNr, filters)
 		return nil, nil
 	}
 
-	return imageObj, nil
+	resourceName := imageObj.ResourceNames[0]
+	return RenderImage(ctx.XRefTable, imageDict, resourceName, objNr)
 }
 
-// ExtractFontData extracts font data (the "fontfile") for objNr.
-// Supported fontTypes: TrueType
-func ExtractFontData(ctx *Context, objNr int) (*FontObject, error) {
+// ExtractPageImages extracts all images used by pageNr.
+func (ctx *Context) ExtractPageImages(pageNr int) ([]Image, error) {
+	ii := []Image{}
+	for _, objNr := range ctx.ImageObjNrs(pageNr) {
+		i, err := ctx.ExtractImage(objNr)
+		if err != nil {
+			return nil, err
+		}
+		if i != nil {
+			i.PageNr = pageNr
+			ii = append(ii, *i)
+		}
+	}
+	return ii, nil
+}
 
+// Font is a Reader representing an embedded font.
+type Font struct {
+	io.Reader
+	Name string
+	Type string
+}
+
+// FontObjNrs returns all font dict objNrs for pageNr.
+// Requires an optimized context.
+func (ctx *Context) FontObjNrs(pageNr int) []int {
+	objNrs := []int{}
+	for k, v := range ctx.Optimize.PageFonts[pageNr-1] {
+		if v {
+			objNrs = append(objNrs, k)
+		}
+	}
+	return objNrs
+}
+
+// ExtractFont extracts a font from font dict by objNr.
+func (ctx *Context) ExtractFont(objNr int) (*Font, error) {
 	fontObject := ctx.Optimize.FontObjects[objNr]
 
 	// Only embedded fonts have binary data.
 	if !fontObject.Embedded() {
-		log.Debug.Printf("extractFontData: ignoring obj#%d - non embedded font: %s\n", objNr, fontObject.FontName)
+		log.Debug.Printf("ExtractFont: ignoring obj#%d - non embedded font: %s\n", objNr, fontObject.FontName)
 		return nil, nil
 	}
 
@@ -122,15 +175,17 @@ func ExtractFontData(ctx *Context, objNr int) (*FontObject, error) {
 	}
 
 	if d == nil {
-		log.Debug.Printf("extractFontData: ignoring obj#%d - no fontDescriptor available for font: %s\n", objNr, fontObject.FontName)
+		log.Debug.Printf("ExtractFont: ignoring obj#%d - no fontDescriptor available for font: %s\n", objNr, fontObject.FontName)
 		return nil, nil
 	}
 
 	ir := fontDescriptorFontFileIndirectObjectRef(d)
 	if ir == nil {
-		log.Debug.Printf("extractFontData: ignoring obj#%d - no font file available for font: %s\n", objNr, fontObject.FontName)
+		log.Debug.Printf("ExtractFont: ignoring obj#%d - no font file available for font: %s\n", objNr, fontObject.FontName)
 		return nil, nil
 	}
+
+	var f *Font
 
 	fontType := fontObject.SubType()
 
@@ -139,8 +194,7 @@ func ExtractFontData(ctx *Context, objNr int) (*FontObject, error) {
 	case "TrueType":
 		// ttf ... true type file
 		// ttc ... true type collection
-		// This is just me guessing..
-		sd, err := ctx.DereferenceStreamDict(*ir)
+		sd, _, err := ctx.DereferenceStreamDict(*ir)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +203,7 @@ func ExtractFontData(ctx *Context, objNr int) (*FontObject, error) {
 		}
 
 		// Decode streamDict if used filter is supported only.
-		err = decodeStream(sd)
+		err = sd.Decode()
 		if err == filter.ErrUnsupportedFilter {
 			return nil, nil
 		}
@@ -157,45 +211,130 @@ func ExtractFontData(ctx *Context, objNr int) (*FontObject, error) {
 			return nil, err
 		}
 
-		fontObject.Data = sd.Content
-		fontObject.Extension = "ttf"
+		f = &Font{bytes.NewReader(sd.Content), fontObject.FontName, "ttf"}
 
 	default:
 		log.Info.Printf("extractFontData: ignoring obj#%d - unsupported fonttype %s -  font: %s\n", objNr, fontType, fontObject.FontName)
 		return nil, nil
 	}
 
-	return fontObject, nil
+	return f, nil
 }
 
-// ExtractStreamData extracts the content of a stream dict for a specific objNr.
-func ExtractStreamData(ctx *Context, objNr int) (data []byte, err error) {
+// ExtractPageFonts extracts all fonts used by pageNr.
+func (ctx *Context) ExtractPageFonts(pageNr int) ([]Font, error) {
+	ff := []Font{}
+	for _, i := range ctx.FontObjNrs(pageNr) {
+		f, err := ctx.ExtractFont(i)
+		if err != nil {
+			return nil, err
+		}
+		if f != nil {
+			ff = append(ff, *f)
+		}
+	}
+	return ff, nil
+}
 
-	// Get object for objNr.
-	o, err := ctx.FindObject(objNr)
+// ExtractPage extracts pageNr into a new single page context.
+func (ctx *Context) ExtractPage(pageNr int) (*Context, error) {
+	return ctx.ExtractPages([]int{pageNr}, false)
+}
+
+// ExtractPages extracts pageNrs into a new single page context.
+func (ctx *Context) ExtractPages(pageNrs []int, usePgCache bool) (*Context, error) {
+	ctxDest, err := CreateContextWithXRefTable(nil, PaperSize["A4"])
 	if err != nil {
 		return nil, err
 	}
 
-	sd, err := ctx.DereferenceStreamDict(o)
-	if err != nil {
+	if err := AddPages(ctx, ctxDest, pageNrs, usePgCache); err != nil {
 		return nil, err
 	}
 
+	return ctxDest, nil
+}
+
+// ExtractPageContent extracts the consolidated page content stream for pageNr.
+func (ctx *Context) ExtractPageContent(pageNr int) (io.Reader, error) {
+	consolidateRes := false
+	d, _, err := ctx.PageDict(pageNr, consolidateRes)
+	if err != nil {
+		return nil, err
+	}
+	bb, err := ctx.PageContent(d)
+	if err != nil && err != errNoContent {
+		return nil, err
+	}
+	return bytes.NewReader(bb), nil
+}
+
+// Metadata is a Reader representing a metadata dict.
+type Metadata struct {
+	io.Reader          // metadata
+	ObjNr       int    // metadata dict objNr
+	ParentObjNr int    // container object number
+	ParentType  string // container dict type
+}
+
+func extractMetadataFromDict(ctx *Context, d Dict, parentObjNr int) (*Metadata, error) {
+	o, found := d.Find("Metadata")
+	if !found || o == nil {
+		return nil, nil
+	}
+	sd, _, err := ctx.DereferenceStreamDict(o)
+	if err != nil {
+		return nil, err
+	}
+	if sd == nil {
+		return nil, nil
+	}
+	// Get metadata dict object number.
+	ir, _ := o.(IndirectRef)
+	mdObjNr := ir.ObjectNumber.Value()
+	// Get container dict type.
+	dt := "unknown"
+	if d.Type() != nil {
+		dt = *d.Type()
+	}
 	// Decode streamDict for supported filters only.
-	err = decodeStream(sd)
-	if err == filter.ErrUnsupportedFilter {
+	if err = sd.Decode(); err == filter.ErrUnsupportedFilter {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-
-	return sd.Content, nil
+	return &Metadata{bytes.NewReader(sd.Content), mdObjNr, parentObjNr, dt}, nil
 }
 
-// TextData extracts text out of the page content for objNr.
-// func TextData(ctx *Context, objNr int) (data []byte, err error) {
-// 	// TODO
-// 	return nil, nil
-// }
+// ExtractMetadata returns all metadata of ctx.
+func (ctx *Context) ExtractMetadata() ([]Metadata, error) {
+	mm := []Metadata{}
+	for k, v := range ctx.Table {
+		if v.Free || v.Compressed {
+			continue
+		}
+		switch d := v.Object.(type) {
+		case Dict:
+			md, err := extractMetadataFromDict(ctx, d, k)
+			if err != nil {
+				return nil, err
+			}
+			if md == nil {
+				continue
+			}
+			mm = append(mm, *md)
+
+		case StreamDict:
+			md, err := extractMetadataFromDict(ctx, d.Dict, k)
+			if err != nil {
+				return nil, err
+			}
+			if md == nil {
+				continue
+			}
+			mm = append(mm, *md)
+		}
+	}
+	return mm, nil
+}

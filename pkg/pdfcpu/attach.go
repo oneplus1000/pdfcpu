@@ -17,32 +17,64 @@ limitations under the License.
 package pdfcpu
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
+	"io"
+	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/filter"
 	"github.com/pdfcpu/pdfcpu/pkg/log"
 	"github.com/pkg/errors"
 )
 
-func decodedFileSpecStreamDict(xRefTable *XRefTable, fileName string, o Object) (*StreamDict, error) {
+func decodeFileSpecStreamDict(sd *StreamDict, id string) error {
+	fpl := sd.FilterPipeline
 
-	d, err := xRefTable.DereferenceDict(o)
-	if err != nil {
-		return nil, err
+	if fpl == nil {
+		sd.Content = sd.Raw
+		return nil
 	}
 
+	// Ignore filter chains with length > 1
+	if len(fpl) > 1 {
+		log.Debug.Printf("decodedFileSpecStreamDict: ignore %s, more than 1 filter.\n", id)
+		return nil
+	}
+
+	// Only FlateDecode supported.
+	if fpl[0].Name != filter.Flate {
+		log.Debug.Printf("decodedFileSpecStreamDict: ignore %s, %s filter unsupported.\n", id, fpl[0].Name)
+		return nil
+	}
+
+	// Decode streamDict for supported filters only.
+	return sd.Decode()
+}
+
+func fileSpectStreamFileName(xRefTable *XRefTable, d Dict) (string, error) {
+	o, found := d.Find("UF")
+	if found {
+		fileName, err := xRefTable.DereferenceStringOrHexLiteral(o, V10, nil)
+		return fileName, err
+	}
+
+	o, found = d.Find("F")
+	if !found {
+		return "", errors.New("")
+	}
+
+	fileName, err := xRefTable.DereferenceStringOrHexLiteral(o, V10, nil)
+	return fileName, err
+}
+
+func fileSpecStreamDict(xRefTable *XRefTable, d Dict) (*StreamDict, error) {
 	// Entry EF is a dict holding a stream dict in entry F.
 	o, found := d.Find("EF")
 	if !found || o == nil {
 		return nil, nil
 	}
 
-	d, err = xRefTable.DereferenceDict(o)
+	d, err := xRefTable.DereferenceDict(o)
 	if err != nil || o == nil {
 		return nil, err
 	}
@@ -53,394 +85,296 @@ func decodedFileSpecStreamDict(xRefTable *XRefTable, fileName string, o Object) 
 		return nil, nil
 	}
 
-	sd, err := xRefTable.DereferenceStreamDict(o)
-	if err != nil || sd == nil {
-		return nil, err
+	sd, _, err := xRefTable.DereferenceStreamDict(o)
+	return sd, err
+}
+
+func fileSpecStreamDictInfo(xRefTable *XRefTable, id string, o Object, decode bool) (*StreamDict, string, string, *time.Time, error) {
+	d, err := xRefTable.DereferenceDict(o)
+	if err != nil {
+		return nil, "", "", nil, err
 	}
 
-	fpl := sd.FilterPipeline
-
-	if fpl == nil {
-
-		sd.Content = sd.Raw
-
-	} else {
-
-		// Ignore filter chains with length > 1
-		if len(fpl) > 1 {
-			log.Debug.Printf("writeFile end: ignore %s, more than 1 filter.\n", fileName)
-			return nil, nil
+	var desc string
+	o, found := d.Find("Desc")
+	if found {
+		desc, err = xRefTable.DereferenceStringOrHexLiteral(o, V10, nil)
+		if err != nil {
+			return nil, "", "", nil, err
 		}
+	}
 
-		// Only FlateDecode supported.
-		if fpl[0].Name != filter.Flate {
-			log.Debug.Printf("writeFile: ignore %s, %s filter unsupported.\n", fileName, fpl[0].Name)
-			return nil, nil
+	fileName, err := fileSpectStreamFileName(xRefTable, d)
+	if err != nil {
+		return nil, "", "", nil, err
+	}
+
+	sd, err := fileSpecStreamDict(xRefTable, d)
+	if err != nil {
+		return nil, "", "", nil, err
+	}
+
+	var modDate *time.Time
+	if d = sd.DictEntry("Params"); d != nil {
+		if s := d.StringEntry("ModDate"); s != nil {
+			dt, ok := DateTime(*s, xRefTable.ValidationMode == ValidationRelaxed)
+			if !ok {
+				return nil, desc, "", nil, errors.New("pdfcpu: invalid date ModDate")
+			}
+			modDate = &dt
 		}
+	}
 
-		// Decode streamDict for supported filters only.
-		if err := decodeStream(sd); err != nil {
+	err = decodeFileSpecStreamDict(sd, id)
+
+	return sd, desc, fileName, modDate, err
+}
+
+// Attachment is a Reader representing a PDF attachment.
+type Attachment struct {
+	io.Reader            // attachment data
+	ID        string     // id
+	FileName  string     // filename
+	Desc      string     // description
+	ModTime   *time.Time // time of last modification (optional)
+}
+
+func (a Attachment) String() string {
+	return fmt.Sprintf("Attachment: id:%s desc:%s modTime:%s", a.ID, a.Desc, a.ModTime)
+}
+
+// ListAttachments returns a slice of attachment stubs (attachment w/o data).
+func (ctx *Context) ListAttachments() ([]Attachment, error) {
+	xRefTable := ctx.XRefTable
+	if !xRefTable.Valid {
+		if err := xRefTable.LocateNameTree("EmbeddedFiles", false); err != nil {
 			return nil, err
 		}
-
+	}
+	if xRefTable.Names["EmbeddedFiles"] == nil {
+		return nil, nil
 	}
 
-	return sd, nil
-}
+	aa := []Attachment{}
 
-func extractAttachedFiles(ctx *Context, files StringSet) error {
-
-	writeFile := func(xRefTable *XRefTable, fileName string, o Object) error {
-
-		path := ctx.Write.DirName + "/" + fileName
-
-		log.Debug.Printf("writeFile begin: %s\n", path)
-
-		sd, err := decodedFileSpecStreamDict(xRefTable, fileName, o)
+	createAttachmentStub := func(xRefTable *XRefTable, id string, o Object) error {
+		decode := false
+		_, desc, fileName, modTime, err := fileSpecStreamDictInfo(xRefTable, id, o, decode)
 		if err != nil {
 			return err
 		}
-
-		log.Info.Printf("writing %s\n", path)
-
-		// TODO Refactor into returning only stream object numbers for files to be extracted.
-		// No writing to file in library!
-		if err := ioutil.WriteFile(path, sd.Content, os.ModePerm); err != nil {
-			return err
-		}
-
-		log.Debug.Printf("writeFile end: %s \n", path)
-
+		aa = append(aa, Attachment{nil, id, fileName, desc, modTime})
 		return nil
 	}
 
-	if len(files) > 0 {
-
-		for fileName := range files {
-
-			v, ok := ctx.Names["EmbeddedFiles"].Value(fileName)
-			if !ok {
-				log.Info.Printf("extractAttachedFiles: %s not found", fileName)
-				continue
-			}
-
-			if err := writeFile(ctx.XRefTable, fileName, v); err != nil {
-				return err
-			}
-
-		}
-
-		return nil
-	}
-
-	// Extract all files.
-	return ctx.Names["EmbeddedFiles"].Process(ctx.XRefTable, writeFile)
-}
-
-func fileSpectDict(xRefTable *XRefTable, filename, desc string) (*IndirectRef, error) {
-	sd, err := xRefTable.NewEmbeddedFileStreamDict(filename)
-	if err != nil {
+	// Extract stub info.
+	if err := ctx.Names["EmbeddedFiles"].Process(xRefTable, createAttachmentStub); err != nil {
 		return nil, err
 	}
 
-	d, err := xRefTable.NewFileSpecDict(filename, desc, *sd) // Supply description!
-	if err != nil {
-		return nil, err
-	}
-
-	return xRefTable.IndRefForNewObject(d)
+	return aa, nil
 }
 
-// ok returns true if at least one attachment was added.
-func addAttachedFiles(xRefTable *XRefTable, files StringSet, coll bool) (bool, error) {
+// AddAttachment adds a.
+func (ctx *Context) AddAttachment(a Attachment, useCollection bool) error {
+	xRefTable := ctx.XRefTable
+	if err := xRefTable.LocateNameTree("EmbeddedFiles", true); err != nil {
+		return err
+	}
 
-	if coll {
+	if useCollection {
 		// Ensure a Collection entry in the catalog.
 		if err := xRefTable.EnsureCollection(); err != nil {
-			return false, err
+			return err
 		}
 	}
 
-	var ok bool
-	for f := range files {
-
-		s := strings.Split(f, ",")
-		if len(s) == 0 || len(s) > 2 {
-			continue
-		}
-
-		fileName := s[0]
-		desc := ""
-		if len(s) == 2 {
-			desc = s[1]
-		}
-
-		ir, err := fileSpectDict(xRefTable, fileName, desc)
-		if err != nil {
-			return false, err
-		}
-
-		_, fn := filepath.Split(fileName)
-		if err := xRefTable.Names["EmbeddedFiles"].Add(xRefTable, fn, *ir); err != nil {
-			return false, err
-		}
-
-		ok = true
+	ir, err := xRefTable.NewFileSpectDictForAttachment(a)
+	if err != nil {
+		return err
 	}
 
-	return ok, nil
+	return xRefTable.Names["EmbeddedFiles"].Add(xRefTable, encodeUTF16String(a.ID), *ir)
 }
 
-// removeAttachedFiles returns true if at least one attachment was removed.
-func removeAttachedFiles(xRefTable *XRefTable, files StringSet) (bool, error) {
+var errContentMatch = errors.New("name tree content match")
 
-	// If no files specified, remove all embedded files.
-	if len(files) == 0 {
+// SearchEmbeddedFilesNameTreeNodeByContent tries to identify a name tree by content.
+func (ctx *Context) SearchEmbeddedFilesNameTreeNodeByContent(s string) (*string, Object, error) {
+
+	var (
+		k *string
+		v Object
+	)
+
+	identifyAttachmentStub := func(xRefTable *XRefTable, id string, o Object) error {
+		decode := false
+		_, desc, fileName, _, err := fileSpecStreamDictInfo(xRefTable, id, o, decode)
+		if err != nil {
+			return err
+		}
+		if s == fileName || s == desc {
+			k = &id
+			v = o
+			return errContentMatch
+		}
+		return nil
+	}
+
+	if err := ctx.Names["EmbeddedFiles"].Process(ctx.XRefTable, identifyAttachmentStub); err != nil {
+		if err != errContentMatch {
+			return nil, nil, err
+		}
+		// Node identified.
+		return k, v, nil
+	}
+
+	return nil, nil, nil
+}
+
+func (ctx *Context) removeAttachment(id string) (bool, error) {
+	log.CLI.Printf("removing %s\n", id)
+	xRefTable := ctx.XRefTable
+	// EmbeddedFiles name tree containing at least one key value pair.
+	empty, ok, err := xRefTable.Names["EmbeddedFiles"].Remove(xRefTable, id)
+	if err != nil {
+		return false, err
+	}
+	if empty {
 		// Delete name tree root object.
 		if err := xRefTable.RemoveEmbeddedFilesNameTree(); err != nil {
 			return false, err
 		}
-		return true, nil
 	}
-
-	var removed bool
-
-	for fileName := range files {
-
-		log.Debug.Printf("removeAttachedFiles: removing %s\n", fileName)
-
-		// Any remove operation may be deleting the only key value pair of this name tree.
-		if xRefTable.Names["EmbeddedFiles"] == nil {
-			//logErrorAttach.Printf("removeAttachedFiles: no attachments, can't remove %s\n", fileName)
-			continue
-		}
-
-		// EmbeddedFiles name tree containing at least one key value pair.
-
-		empty, ok, err := xRefTable.Names["EmbeddedFiles"].Remove(xRefTable, fileName)
+	if !ok {
+		// Try to identify name tree node by content.
+		k, _, err := ctx.SearchEmbeddedFilesNameTreeNodeByContent(id)
 		if err != nil {
 			return false, err
 		}
-
-		if !ok {
-			log.Info.Printf("removeAttachedFiles: %s not found\n", fileName)
-			continue
+		if k == nil {
+			log.CLI.Printf("attachment %s not found", id)
+			return false, nil
 		}
-
-		log.Debug.Printf("removeAttachedFiles: removed key value pair for %s - empty=%t\n", fileName, empty)
-
+		empty, _, err = xRefTable.Names["EmbeddedFiles"].Remove(xRefTable, *k)
+		if err != nil {
+			return false, err
+		}
 		if empty {
 			// Delete name tree root object.
 			if err := xRefTable.RemoveEmbeddedFilesNameTree(); err != nil {
 				return false, err
 			}
 		}
-
-		removed = true
 	}
-
-	return removed, nil
+	return true, nil
 }
 
-// AttachList returns a list of embedded files.
-func AttachList(xRefTable *XRefTable) ([]string, error) {
-
-	if !xRefTable.Valid {
-		if err := xRefTable.LocateNameTree("EmbeddedFiles", false); err != nil {
-			return nil, err
-		}
-	}
-
-	if xRefTable.Names["EmbeddedFiles"] == nil {
-		return nil, nil
-	}
-
-	return xRefTable.Names["EmbeddedFiles"].KeyList()
-}
-
-// AttachExtract exports specified embedded files.
-// If no files specified extract all embedded files.
-func AttachExtract(ctx *Context, files StringSet) error {
-
-	if !ctx.Valid {
-		if err := ctx.LocateNameTree("EmbeddedFiles", false); err != nil {
-			return err
-		}
-	}
-
-	if ctx.Names["EmbeddedFiles"] == nil {
-		return errors.Errorf("no attachments available.")
-	}
-
-	return extractAttachedFiles(ctx, files)
-}
-
-// AttachAdd embeds specified files.
-// Existing attachments are replaced.
-// Ensures collection for portfolios.
-// Returns true if at least one attachment was added.
-func AttachAdd(xRefTable *XRefTable, files StringSet, coll bool) (bool, error) {
-
-	if err := xRefTable.LocateNameTree("EmbeddedFiles", true); err != nil {
-		return false, err
-	}
-
-	return addAttachedFiles(xRefTable, files, coll)
-}
-
-// AttachRemove deletes specified embedded files.
-// Returns true if at least one attachment could be removed.
-func AttachRemove(xRefTable *XRefTable, files StringSet) (bool, error) {
-
+// RemoveAttachments removes attachments with given id and returns true if anything removed.
+func (ctx *Context) RemoveAttachments(ids []string) (bool, error) {
+	// Note: Any remove operation may be deleting the only key value pair of this name tree.
+	xRefTable := ctx.XRefTable
 	if !xRefTable.Valid {
 		if err := xRefTable.LocateNameTree("EmbeddedFiles", false); err != nil {
 			return false, err
 		}
 	}
-
 	if xRefTable.Names["EmbeddedFiles"] == nil {
 		return false, errors.Errorf("no attachments available.")
 	}
 
-	return removeAttachedFiles(xRefTable, files)
-}
-
-// KeywordsList returns a list of keywords as recorded in the document info dict.
-func KeywordsList(xRefTable *XRefTable) ([]string, error) {
-	ss := strings.FieldsFunc(xRefTable.Keywords, func(c rune) bool { return c == ',' || c == ';' || c == '\r' })
-	for i, s := range ss {
-		ss[i] = strings.TrimSpace(s)
-	}
-	return ss, nil
-}
-
-// KeywordsAdd adds keywords to the document info dict.
-// Returns true if at least one keyword was added.
-func KeywordsAdd(xRefTable *XRefTable, keywords []string) error {
-
-	list, err := KeywordsList(xRefTable)
-	if err != nil {
-		return err
-	}
-
-	for _, s := range keywords {
-		if !MemberOf(s, list) {
-			xRefTable.Keywords += ", " + s
+	if ids == nil || len(ids) == 0 {
+		// Remove all attachments - delete name tree root object.
+		log.CLI.Println("removing all attachments")
+		if err := xRefTable.RemoveEmbeddedFilesNameTree(); err != nil {
+			return false, err
 		}
-	}
-
-	d, err := xRefTable.DereferenceDict(*xRefTable.Info)
-	if err != nil || d == nil {
-		return err
-	}
-
-	d["Keywords"] = StringLiteral(xRefTable.Keywords)
-
-	return nil
-}
-
-// KeywordsRemove deletes keywords from the document info dict.
-// Returns true if at least one keyword was removed.
-func KeywordsRemove(xRefTable *XRefTable, keywords []string) (bool, error) {
-	// TODO Handle missing info dict.
-	d, err := xRefTable.DereferenceDict(*xRefTable.Info)
-	if err != nil || d == nil {
-		return false, err
-	}
-
-	if len(keywords) == 0 {
-		// Remove all keywords.
-		delete(d, "Keywords")
 		return true, nil
 	}
 
-	// Distil document keywords.
-	ss := strings.FieldsFunc(xRefTable.Keywords, func(c rune) bool { return c == ',' || c == ';' || c == '\r' })
-
-	xRefTable.Keywords = ""
-	var removed bool
-	first := true
-
-	for _, s := range ss {
-		s = strings.TrimSpace(s)
-		if MemberOf(s, keywords) {
-			removed = true
-			continue
+	for _, id := range ids {
+		found, err := ctx.removeAttachment(id)
+		if err != nil {
+			return false, err
 		}
-		if first {
-			xRefTable.Keywords = s
-			first = false
-			continue
+		if !found {
+			return false, nil
 		}
-		xRefTable.Keywords += ", " + s
 	}
 
-	if removed {
-		d["Keywords"] = StringLiteral(xRefTable.Keywords)
-	}
-
-	return removed, nil
+	return true, nil
 }
 
-// PropertiesList returns a list of document properties as recorded in the document info dict.
-func PropertiesList(xRefTable *XRefTable) ([]string, error) {
-	list := make([]string, 0, len(xRefTable.Properties))
-	keys := make([]string, len(xRefTable.Properties))
-	i := 0
-	for k := range xRefTable.Properties {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		v := xRefTable.Properties[k]
-		list = append(list, fmt.Sprintf("%s = %s", k, v))
-	}
-	return list, nil
+// RemoveAttachment removes a and returns true on success.
+func (ctx *Context) RemoveAttachment(a Attachment) (bool, error) {
+	return ctx.RemoveAttachments([]string{a.ID})
 }
 
-// PropertiesAdd adds properties into the document info dict.
-// Returns true if at least one property was added.
-func PropertiesAdd(xRefTable *XRefTable, properties map[string]string) error {
-	// TODO Handle missing info dict.
-	d, err := xRefTable.DereferenceDict(*xRefTable.Info)
-	if err != nil || d == nil {
-		return err
+// ExtractAttachments extracts attachments with id.
+func (ctx *Context) ExtractAttachments(ids []string) ([]Attachment, error) {
+	xRefTable := ctx.XRefTable
+	if !xRefTable.Valid {
+		if err := xRefTable.LocateNameTree("EmbeddedFiles", false); err != nil {
+			return nil, err
+		}
 	}
-	for k, v := range properties {
-		d[k] = StringLiteral(v)
-		xRefTable.Properties[k] = v
+	if xRefTable.Names["EmbeddedFiles"] == nil {
+		return nil, errors.Errorf("no attachments available.")
 	}
-	return nil
+
+	aa := []Attachment{}
+
+	createAttachment := func(xRefTable *XRefTable, id string, o Object) error {
+		decode := true
+		sd, desc, fileName, modTime, err := fileSpecStreamDictInfo(xRefTable, id, o, decode)
+		if err != nil {
+			return err
+		}
+		a := Attachment{Reader: bytes.NewReader(sd.Content), ID: id, FileName: fileName, Desc: desc, ModTime: modTime}
+		aa = append(aa, a)
+		return nil
+	}
+
+	// Search with UF,F,Desc
+	if ids != nil && len(ids) > 0 {
+		for _, id := range ids {
+			v, ok := ctx.Names["EmbeddedFiles"].Value(id)
+			if !ok {
+				// Try to identify name tree node by content.
+				k, o, err := ctx.SearchEmbeddedFilesNameTreeNodeByContent(id)
+				if err != nil {
+					return nil, err
+				}
+				if k == nil {
+					log.CLI.Printf("attachment %s not found", id)
+					log.Info.Printf("pdfcpu: extractAttachments: %s not found", id)
+					continue
+				}
+				v = o
+			}
+			if err := createAttachment(ctx.XRefTable, id, v); err != nil {
+				return nil, err
+			}
+		}
+		return aa, nil
+	}
+
+	// Extract all files.
+	if err := ctx.Names["EmbeddedFiles"].Process(ctx.XRefTable, createAttachment); err != nil {
+		return nil, err
+	}
+
+	return aa, nil
 }
 
-// PropertiesRemove deletes specified properties.
-// Returns true if at least one property was removed.
-func PropertiesRemove(xRefTable *XRefTable, properties []string) (bool, error) {
-	// TODO Handle missing info dict.
-	d, err := xRefTable.DereferenceDict(*xRefTable.Info)
-	if err != nil || d == nil {
-		return false, err
+// ExtractAttachment extracts a fully populated attachment.
+func (ctx *Context) ExtractAttachment(a Attachment) (*Attachment, error) {
+	aa, err := ctx.ExtractAttachments([]string{a.ID})
+	if err != nil || len(aa) == 0 {
+		return nil, err
 	}
-
-	if len(properties) == 0 {
-		// Remove all properties.
-		for k := range xRefTable.Properties {
-			delete(d, k)
-		}
-		xRefTable.Properties = map[string]string{}
-		return true, nil
+	if len(aa) > 1 {
+		return nil, errors.Errorf("pdfcpu: unexpected number of attachments: %d", len(aa))
 	}
-
-	var removed bool
-	for _, k := range properties {
-		_, ok := d[k]
-		if ok && !removed {
-			delete(d, k)
-			delete(xRefTable.Properties, k)
-			removed = true
-		}
-	}
-
-	return removed, nil
+	return &aa[0], nil
 }

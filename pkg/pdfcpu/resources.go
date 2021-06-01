@@ -102,7 +102,6 @@ func (fo FontObject) String() string {
 type ImageObject struct {
 	ResourceNames []string
 	ImageDict     *StreamDict
-	//Extension     string
 }
 
 // AddResourceName adds a resourceName to this imageObject's ResourceNames dict.
@@ -124,10 +123,50 @@ func (io ImageObject) ResourceNamesString() string {
 	return strings.Join(resNames, ",")
 }
 
-// Data returns the raw data belonging to this image object.
-// func (io ImageObject) Data() []byte {
-// 	if io.Extension == "png" {
-// 		return io.ImageDict.Content
-// 	}
-// 	return io.ImageDict.Raw
-// }
+var resourceTypes = NewStringSet([]string{"ColorSpace", "ExtGState", "Font", "Pattern", "Properties", "Shading", "XObject"})
+
+// PageResourceNames represents the required resource names for a specific page as extracted from its content streams.
+type PageResourceNames map[string]StringSet
+
+// NewPageResourceNames returns initialized pageResourceNames.
+func NewPageResourceNames() PageResourceNames {
+	m := make(map[string]StringSet, len(resourceTypes))
+	for k := range resourceTypes {
+		m[k] = StringSet{}
+	}
+	return m
+}
+
+// Resources returns a set of all required resource names for subdict s.
+func (prn PageResourceNames) Resources(s string) StringSet {
+	return prn[s]
+}
+
+// HasResources returns true for any resource names present in resource subDict s.
+func (prn PageResourceNames) HasResources(s string) bool {
+	return len(prn.Resources(s)) > 0
+}
+
+// HasContent returns true in any resource names present.
+func (prn PageResourceNames) HasContent() bool {
+	for k := range resourceTypes {
+		if prn.HasResources(k) {
+			return true
+		}
+	}
+	return false
+}
+
+func (prn PageResourceNames) String() string {
+	sep := ", "
+	var ss []string
+	s := []string{"PageResourceNames:\n"}
+	for k := range resourceTypes {
+		ss = nil
+		for k := range prn.Resources(k) {
+			ss = append(ss, k)
+		}
+		s = append(s, k+": "+strings.Join(ss, sep)+"\n")
+	}
+	return strings.Join(s, "")
+}

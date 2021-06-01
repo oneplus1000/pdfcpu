@@ -42,6 +42,81 @@ for part of my plan has been to try to pleasantly remind adults of what
 they once were themselves, and of how they felt and thought and talked,
 and what queer enterprises they sometimes engaged in.`
 
+var sampleTextArabic = `حدثت بالفعل معظم المغامرات المسجلة في هذا الكتاب ؛ واحد أو
+كانت اثنتان من تجربتي الخاصة ، والباقي تجارب الأولاد الذين كانوا كذلك
+زملائي في المدرسة. هاك فين مستوحى من الحياة ؛ توم سوير أيضا ولكن
+ليس من فرد - إنه مزيج من خصائص
+ثلاثة أولاد أعرفهم ، وبالتالي ينتمون إلى الترتيب المركب لـ
+هندسة معمارية.
+
+كانت الخرافات الغريبة التي تم التطرق إليها سائدة بين الأطفال
+والعبيد في الغرب في فترة هذه القصة - أي
+قبل ثلاثين أو أربعين سنة.
+
+على الرغم من أن كتابي مخصص بشكل أساسي للترفيه عن الأولاد و
+الفتيات ، أتمنى ألا يتجنب الرجال والنساء ذلك الحساب ،
+جزء من خطتي كان محاولة تذكير البالغين بما يحدث
+كانوا أنفسهم ذات مرة ، وكيف شعروا وفكروا وتحدثوا ،
+وما هي المؤسسات الكويرية التي شاركوا فيها أحيانًا.`
+
+var sampleTextHebrew = `רוב ההרפתקאות שתועדו בספר זה באמת התרחשו; אחד או
+שתיים היו חוויות משלי, והשאר אלה של בנים שהיו
+חברי לבית הספר שלי. האק פין נשאב מהחיים; גם טום סוייר, אבל
+לא מאדם - הוא שילוב של המאפיינים של
+שלושה בנים שהכרתי ולכן שייכים לסדר המורכב של
+ארכיטקטורה.
+
+האמונות הטפלות המוזרות בהן נגעו היו כולן רווחות בקרב ילדים
+ועבדים במערב בתקופת הסיפור הזה - כלומר,
+לפני שלושים או ארבעים שנה.
+
+למרות שהספר שלי מיועד בעיקר לבידור של בנים ו
+בנות, אני מקווה שזה לא יימנע מגברים ונשים בגלל זה,
+חלק מהתוכנית שלי הייתה לנסות להזכיר למבוגרים בנעימות מה
+פעם הם היו עצמם, ועל איך שהם הרגישו וחשבו ודיברו,
+ובאילו מפעלים מוזרים הם עסקו לפעמים.`
+
+var sampleTextPersian = `بیشتر ماجراهای ثبت شده در این کتاب واقعاً اتفاق افتاده است. یکی یا
+دو مورد از تجربه های خودم بود ، بقیه از پسران بودند
+هم مدرسه ای های من. هاک فین از زندگی کشیده شده است. تام سویر نیز ، اما
+نه از یک فرد - او ترکیبی از ویژگی های است
+سه پسر که من آنها را می شناختم و بنابراین به ترتیب مرکب تعلق دارند
+معماری.
+
+خرافات عجیب و غریب لمس شده همه در میان کودکان شایع بود
+و بردگان در غرب این دوره از داستان - یعنی اینکه ،
+سی چهل سال پیش
+
+اگرچه کتاب من عمدتا برای سرگرمی پسران و
+دختران ، امیدوارم با این حساب مردان و زنان از آن اجتناب نکنند ،
+زیرا بخشی از برنامه من این بوده است که سعی کنم چه چیزی را به بزرگسالان یادآوری کنم
+آنها یک بار خودشان بودند ، و از احساس و تفکر و صحبت کردن ،
+و بعضی اوقات چه کارهایی را انجام می دادند`
+
+var sampleTextUrdu = `اس کتاب میں درج کی گئی زیادہ تر مہم جوئی واقعتا؛ پیش آئی ہے۔ ایک یا
+دو میرے اپنے تجربات تھے ، باقی جو لڑکے تھے
+میرے اسکول کے ساتھیوں. ہک فن زندگی سے نکالا گیا ہے۔ ٹام ساویر بھی ، لیکن
+کسی فرد سے نہیں - وہ کی خصوصیات کا ایک مجموعہ ہے
+تین لڑکے جن کو میں جانتا تھا ، اور اس وجہ سے یہ جامع ترتیب سے ہے
+فن تعمیر
+
+بچوں میں عجیب و غریب اندوشواس کا اثر تمام تھا
+اور اس کہانی کے دور میں مغرب میں غلام۔
+تیس یا چالیس سال پہلے کی بات ہے۔
+
+اگرچہ میری کتاب بنیادی طور پر لڑکوں اور تفریح ​​کے لئے ہے
+لڑکیاں ، مجھے امید ہے کہ اس وجہ سے مرد اور خواتین اس سے باز نہیں آئیں گے ،
+میرے منصوبے کا ایک حص adultsہ یہ رہا ہے کہ بالغوں کو خوشی سے اس کی یاد دلانے کی کیا کوشش کی جائے
+وہ ایک بار خود تھے ، اور یہ کہ وہ کیسے محسوس کرتے ہیں ، سوچتے اور بات کرتے ہیں ،
+اور کن کن کن کاروباری اداروں میں وہ کبھی کبھی مشغول رہتے ہیں۔`
+
+var sampleTextRTL = map[string]string{
+	"Arabic":  sampleTextArabic,
+	"Hebrew":  sampleTextHebrew,
+	"Persian": sampleTextPersian,
+	"Urdu":    sampleTextUrdu,
+}
+
 var sampleText2 = `THE two boys flew on and on, toward the village, speechless with
 horror. They glanced backward over their shoulders from time to time,
 apprehensively, as if they feared they might be followed. Every stump
@@ -102,7 +177,19 @@ func TestCreateDemoPDF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
-	createAndValidate(t, xRefTable, "test.pdf", msg)
+	createAndValidate(t, xRefTable, "Test.pdf", msg)
+}
+
+func TestResourceDictInheritanceDemoPDF(t *testing.T) {
+	// Create a test page proofing resource inheritance.
+	// Resources may be inherited from ANY parent node.
+	// Case in point: fonts
+	msg := "TestResourceDictInheritanceDemoPDF"
+	xRefTable, err := pdf.CreateResourceDictInheritanceDemoXRef()
+	if err != nil {
+		t.Fatalf("%s: %v\n", msg, err)
+	}
+	createAndValidate(t, xRefTable, "ResourceDictInheritanceDemo.pdf", msg)
 }
 
 func TestAnnotationDemoPDF(t *testing.T) {
@@ -111,7 +198,7 @@ func TestAnnotationDemoPDF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
-	createAndValidate(t, xRefTable, "annotationDemo.pdf", msg)
+	createAndValidate(t, xRefTable, "AnnotationDemo.pdf", msg)
 }
 
 func TestAcroformDemoPDF(t *testing.T) {
@@ -120,10 +207,15 @@ func TestAcroformDemoPDF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
-	createAndValidate(t, xRefTable, "acroFormDemo.pdf", msg)
+	createAndValidate(t, xRefTable, "AcroFormDemo.pdf", msg)
 }
 
-func writeTextDemoAlignedWidthAndMargin(p pdf.Page, region *pdf.Rectangle, hAlign pdf.HAlignment, w, mLeft, mRight, mTop, mBot float64) {
+func writeTextDemoAlignedWidthAndMargin(
+	p pdf.Page,
+	region *pdf.Rectangle,
+	hAlign pdf.HAlignment,
+	w, mLeft, mRight, mTop, mBot float64) {
+
 	buf := p.Buf
 	mediaBox := p.MediaBox
 
@@ -280,7 +372,7 @@ func createTextDemoAlignJustifyWidthAndMargin(mediaBox *pdf.Rectangle) pdf.Page 
 	return createTextDemoAlignedWidthAndMargin(mediaBox, pdf.AlignJustify, 250, 5, 10, 15, 20)
 }
 
-func writeTextAlignJustifyDemo(p pdf.Page, region *pdf.Rectangle) {
+func writeTextAlignJustifyDemo(p pdf.Page, region *pdf.Rectangle, fontName string) {
 	mediaBox := p.MediaBox
 	buf := p.Buf
 
@@ -297,7 +389,6 @@ func writeTextAlignJustifyDemo(p pdf.Page, region *pdf.Rectangle) {
 		pdf.FillRect(buf, r, pdf.SimpleColor{R: cr, G: cg, B: cb})
 	}
 
-	fontName := "Times-Roman"
 	k := p.Fm.EnsureKey(fontName)
 
 	td := pdf.TextDescriptor{
@@ -348,8 +439,10 @@ func writeTextAlignJustifyColumnDemo(p pdf.Page, region *pdf.Rectangle) {
 		pdf.FillRect(buf, r, pdf.SimpleColor{R: cr, G: cg, B: cb})
 	}
 
-	k1 := p.Fm.EnsureKey("Times-Roman")
-	k2 := p.Fm.EnsureKey("Helvetica")
+	fontName := "Times-Roman"
+	fontName2 := "Helvetica"
+	k1 := p.Fm.EnsureKey(fontName)
+	k2 := p.Fm.EnsureKey(fontName2)
 
 	td := pdf.TextDescriptor{
 		Text:           sampleText,
@@ -373,14 +466,14 @@ func writeTextAlignJustifyColumnDemo(p pdf.Page, region *pdf.Rectangle) {
 
 	td.BackgroundCol = pdf.White
 	td.FillCol = pdf.Black
-	td.FontName, td.FontKey, td.FontSize = "Times-Roman", k1, 9
+	td.FontName, td.FontKey, td.FontSize = fontName, k1, 9
 	td.ParIndent = true
 	td.VAlign, td.X, td.Y, td.Dx, td.Dy = pdf.AlignTop, 0, r.Height(), 5, -5
 	pdf.WriteColumn(buf, mediaBox, region, td, 150)
 
 	td.BackgroundCol = pdf.Black
 	td.FillCol = pdf.White
-	td.FontName, td.FontKey, td.FontSize = "Helvetica", k2, 12
+	td.FontName, td.FontKey, td.FontSize = fontName2, k2, 12
 	td.ParIndent = true
 	td.VAlign, td.X, td.Y, td.Dx, td.Dy = pdf.AlignTop, -1, -1, 0, 0
 	pdf.WriteColumn(buf, mediaBox, region, td, 290)
@@ -391,9 +484,10 @@ func writeTextAlignJustifyColumnDemo(p pdf.Page, region *pdf.Rectangle) {
 func createTextAlignJustifyDemo(mediaBox *pdf.Rectangle) pdf.Page {
 	p := pdf.NewPage(mediaBox)
 	var region *pdf.Rectangle
-	writeTextAlignJustifyDemo(p, region)
+	fontName := "Times-Roman"
+	writeTextAlignJustifyDemo(p, region, fontName)
 	region = pdf.RectForWidthAndHeight(0, 0, 200, 200)
-	writeTextAlignJustifyDemo(p, region)
+	writeTextAlignJustifyDemo(p, region, fontName)
 	return p
 }
 
@@ -1553,7 +1647,7 @@ func createXRefAndWritePDF(t *testing.T, msg, fileName string, p pdf.Page) {
 	if err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
-	outDir := "../../samples/create"
+	outDir := filepath.Join("..", "..", "samples", "create")
 	outFile := filepath.Join(outDir, fileName+".pdf")
 	createAndValidate(t, xRefTable, outFile, msg)
 }
@@ -1587,10 +1681,10 @@ func testTextDemoPDF(t *testing.T, msg, fileName string, w, h int, hAlign pdf.HA
 	}
 
 	mediaBox := pdf.RectForDim(float64(w), float64(h))
-	createXRefAndWritePDF(t, msg, "textDemo"+fileName, f1(mediaBox))
-	createXRefAndWritePDF(t, msg, "textDemo"+fileName+"Margin", f2(mediaBox))
-	createXRefAndWritePDF(t, msg, "textDemo"+fileName+"Width", f3(mediaBox))
-	createXRefAndWritePDF(t, msg, "textDemo"+fileName+"WidthAndMargin", f4(mediaBox))
+	createXRefAndWritePDF(t, msg, "TextDemo"+fileName, f1(mediaBox))
+	createXRefAndWritePDF(t, msg, "TextDemo"+fileName+"Margin", f2(mediaBox))
+	createXRefAndWritePDF(t, msg, "TextDemo"+fileName+"Width", f3(mediaBox))
+	createXRefAndWritePDF(t, msg, "TextDemo"+fileName+"WidthAndMargin", f4(mediaBox))
 }
 
 func TestTextDemoPDF(t *testing.T) {
@@ -1613,17 +1707,18 @@ func TestTextDemoPDF(t *testing.T) {
 
 func TestColumnDemoPDF(t *testing.T) {
 	msg := "TestColumnDemoPDF"
+
 	for _, tt := range []struct {
 		fileName string
 		w, h     int
 		f        func(mediaBox *pdf.Rectangle) pdf.Page
 	}{
-		{"testTextAlignJustifyDemo", 600, 600, createTextAlignJustifyDemo},
-		{"testTextAlignJustifyColumnDemo", 600, 600, createTextAlignJustifyColumnDemo},
-		{"textDemoAnchors", 600, 600, createTextDemoAnchors},
-		{"textDemoAnchorsWithOffset", 600, 600, createTextDemoAnchorsWithOffset},
-		{"textDemoColumnAnchored", 1200, 1200, createTextDemoColumnAnchored},
-		{"textDemoColumnAnchoredWithOffset", 1200, 1200, createTextDemoColumnAnchoredWithOffset},
+		{"TestTextAlignJustifyDemo", 600, 600, createTextAlignJustifyDemo},
+		{"TestTextAlignJustifyColumnDemo", 600, 600, createTextAlignJustifyColumnDemo},
+		{"TextDemoAnchors", 600, 600, createTextDemoAnchors},
+		{"TextDemoAnchorsWithOffset", 600, 600, createTextDemoAnchorsWithOffset},
+		{"TextDemoColumnAnchored", 1200, 1200, createTextDemoColumnAnchored},
+		{"TextDemoColumnAnchoredWithOffset", 1200, 1200, createTextDemoColumnAnchoredWithOffset},
 		{"TextRotateDemo", 1200, 1200, createTextRotateDemo},
 		{"TextRotateDemoWithOffset", 1200, 1200, createTextRotateDemoWithOffset},
 		{"TextScaleAbsoluteDemo", 600, 600, createTextScaleAbsoluteDemo},
@@ -1640,4 +1735,239 @@ func TestColumnDemoPDF(t *testing.T) {
 		mediaBox := pdf.RectForDim(float64(tt.w), float64(tt.h))
 		createXRefAndWritePDF(t, msg, tt.fileName, tt.f(mediaBox))
 	}
+}
+
+func writecreateTestRTLUserFont(p pdf.Page, region *pdf.Rectangle, fontName, text string) {
+	mediaBox := p.MediaBox
+	buf := p.Buf
+
+	mediaBB := true
+
+	var cr, cg, cb float32
+	cr, cg, cb = .5, .75, 1.
+	r := mediaBox
+	if region != nil {
+		r = region
+		cr, cg, cb = .75, .75, 1
+	}
+	if mediaBB {
+		pdf.FillRect(buf, r, pdf.SimpleColor{R: cr, G: cg, B: cb})
+	}
+
+	k := p.Fm.EnsureKey(fontName)
+
+	td := pdf.TextDescriptor{
+		Text:           text,
+		FontName:       fontName,
+		FontKey:        k,
+		FontSize:       12,
+		RTL:            true,
+		MLeft:          5,
+		MRight:         5,
+		MTop:           5,
+		MBot:           5,
+		X:              mediaBox.Width(),
+		Y:              -1,
+		Scale:          1.,
+		ScaleAbs:       true,
+		HAlign:         pdf.AlignRight,
+		VAlign:         pdf.AlignMiddle,
+		RMode:          pdf.RMFill,
+		StrokeCol:      pdf.NewSimpleColor(0x206A29),
+		FillCol:        pdf.NewSimpleColor(0x206A29),
+		ShowBackground: true,
+		BackgroundCol:  pdf.SimpleColor{R: 1., G: .98, B: .77},
+		ShowBorder:     true,
+		ShowLineBB:     false,
+		ShowTextBB:     true,
+		HairCross:      false,
+	}
+
+	pdf.WriteMultiLine(buf, mediaBox, region, td)
+
+	pdf.DrawHairCross(p.Buf, 0, 0, mediaBox)
+}
+
+func createTestRTLUserFont(mediaBox *pdf.Rectangle, language, fontName string) pdf.Page {
+	p := pdf.NewPage(mediaBox)
+	var region *pdf.Rectangle
+	text := sampleTextRTL[language]
+	writecreateTestRTLUserFont(p, region, fontName, text)
+	region = pdf.RectForWidthAndHeight(10, 10, mediaBox.Width()/4, mediaBox.Height()/4)
+	writecreateTestRTLUserFont(p, region, fontName, text)
+	return p
+}
+
+func writecreateTestUserFontJustified(p pdf.Page, region *pdf.Rectangle, rtl bool) {
+	mediaBox := p.MediaBox
+	buf := p.Buf
+
+	mediaBB := true
+
+	var cr, cg, cb float32
+	cr, cg, cb = .5, .75, 1.
+	r := mediaBox
+	if region != nil {
+		r = region
+		cr, cg, cb = .75, .75, 1
+	}
+	if mediaBB {
+		pdf.FillRect(buf, r, pdf.SimpleColor{R: cr, G: cg, B: cb})
+	}
+
+	fontName := "Roboto-Regular"
+	k := p.Fm.EnsureKey(fontName)
+
+	td := pdf.TextDescriptor{
+		Text:           sampleText,
+		FontName:       fontName,
+		FontKey:        k,
+		FontSize:       12,
+		RTL:            rtl,
+		MLeft:          5,
+		MRight:         5,
+		MTop:           5,
+		MBot:           5,
+		X:              -1,
+		Y:              -1,
+		Scale:          1.,
+		ScaleAbs:       true,
+		HAlign:         pdf.AlignJustify,
+		VAlign:         pdf.AlignMiddle,
+		RMode:          pdf.RMFill,
+		StrokeCol:      pdf.NewSimpleColor(0x206A29),
+		FillCol:        pdf.NewSimpleColor(0x206A29),
+		ShowBackground: true,
+		BackgroundCol:  pdf.SimpleColor{R: 1., G: .98, B: .77},
+		ShowBorder:     true,
+		ShowLineBB:     false,
+		ShowTextBB:     true,
+		HairCross:      false,
+	}
+
+	pdf.WriteMultiLine(buf, mediaBox, region, td)
+
+	pdf.DrawHairCross(p.Buf, 0, 0, mediaBox)
+}
+
+func createTestUserFontJustified(mediaBox *pdf.Rectangle, rtl bool) pdf.Page {
+	p := pdf.NewPage(mediaBox)
+	var region *pdf.Rectangle
+	writecreateTestUserFontJustified(p, region, rtl)
+	return p
+}
+
+func TestUserFontJustified(t *testing.T) {
+	msg := "TestUserFontJustified"
+
+	// Install test user fonts (in addition to already installed user fonts)
+	// from pkg/testdata/fonts.
+	api.LoadConfiguration()
+	if err := api.InstallFonts(userFonts(t, filepath.Join("..", "..", "testdata", "fonts"))); err != nil {
+		t.Fatalf("%s: %v\n", msg, err)
+	}
+
+	mediaBox := pdf.RectForDim(600, 600)
+	createXRefAndWritePDF(t, msg, "UserFont_Justified", createTestUserFontJustified(mediaBox, false))
+	createXRefAndWritePDF(t, msg, "UserFont_JustifiedRightToLeft", createTestUserFontJustified(mediaBox, true))
+	// Justified text for right to left languages seems to be tricky business - the following samples are right aligned:
+	createXRefAndWritePDF(t, msg, "UserFont_Arabic", createTestRTLUserFont(mediaBox, "Arabic", "UnifontMedium"))
+	createXRefAndWritePDF(t, msg, "UserFont_Hebrew", createTestRTLUserFont(mediaBox, "Hebrew", "UnifontMedium"))
+	createXRefAndWritePDF(t, msg, "UserFont_Persian", createTestRTLUserFont(mediaBox, "Persian", "UnifontMedium"))
+	createXRefAndWritePDF(t, msg, "UserFont_Urdu", createTestRTLUserFont(mediaBox, "Urdu", "UnifontMedium"))
+}
+
+func createCJKVDemo(mediaBox *pdf.Rectangle) pdf.Page {
+	p := pdf.NewPage(mediaBox)
+	mb := p.MediaBox
+
+	textEnglish := `pdfcpu
+Instant PDF processing for all your needs.
+Now supporting CJKV!`
+
+	textChineseSimple := `pdfcpu
+即时处理PDF，满足您的所有需求。
+现在支持CJKV字体！`
+
+	textJapanese := `pdfcpu
+すべてのニーズに対応するインスタントPDF処理。
+CJKVフォントがサポートされるようになりました！`
+
+	textKorean := `pdfcpu
+모든 요구 사항에 맞는 즉각적인 PDF 처리.
+이제 CJKV 글꼴을 지원합니다!`
+
+	textVietnamese := `pdfcpu
+Xử lý PDF tức thì cho mọi nhu cầu của bạn.
+Bây giờ với sự hỗ trợ cho các phông chữ CJKV!`
+
+	td := pdf.TextDescriptor{
+		FontSize:       24,
+		MLeft:          5,
+		MRight:         5,
+		MTop:           5,
+		MBot:           5,
+		Scale:          1,
+		ScaleAbs:       true,
+		HAlign:         pdf.AlignLeft,
+		VAlign:         pdf.AlignMiddle,
+		RMode:          pdf.RMFill,
+		StrokeCol:      pdf.NewSimpleColor(0x206A29),
+		FillCol:        pdf.NewSimpleColor(0x206A29),
+		ShowBackground: true,
+		BackgroundCol:  pdf.SimpleColor{R: 1., G: .98, B: .77},
+		ShowBorder:     true,
+		ShowLineBB:     false,
+		ShowTextBB:     true,
+		HairCross:      false,
+	}
+
+	td.Text, td.FontName, td.FontKey = textChineseSimple, "UnifontMedium", p.Fm.EnsureKey("UnifontMedium")
+	td.X, td.Y = 0, mb.Height()
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 3*mb.Width()/4)
+
+	td.Text, td.FontName, td.FontKey = textJapanese, "Unifont-JPMedium", p.Fm.EnsureKey("Unifont-JPMedium")
+	td.X, td.Y = mb.Width(), 2*mb.Height()/3
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 3*mb.Width()/4)
+
+	td.Text, td.FontName, td.FontKey = textKorean, "UnifontMedium", p.Fm.EnsureKey("UnifontMedium")
+	td.X, td.Y = 0, mb.Height()/3
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 3*mb.Width()/4)
+
+	td.Text, td.FontName, td.FontKey = textVietnamese, "Roboto-Regular", p.Fm.EnsureKey("Roboto-Regular")
+	td.X, td.Y = mb.Width(), 0
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 3*mb.Width()/4)
+
+	td.Text, td.FontSize, td.ShowTextBB = textEnglish, 24, false
+	td.X, td.Y, td.HAlign = -1, -1, pdf.AlignCenter
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 0)
+
+	td.FontSize = 80
+	td.Text, td.HAlign, td.X, td.Y = "C", pdf.AlignRight, mb.Width(), mb.Height()
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 0)
+
+	td.Text, td.HAlign, td.X, td.Y = "J", pdf.AlignLeft, 0, 2*mb.Height()/3
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 0)
+
+	td.Text, td.HAlign, td.X, td.Y = "K", pdf.AlignRight, mb.Width(), mb.Height()/3
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 0)
+
+	td.Text, td.HAlign, td.X, td.Y = "V", pdf.AlignLeft, 0, 0
+	pdf.WriteColumn(p.Buf, mediaBox, nil, td, 0)
+
+	return p
+}
+
+func TestCJKV(t *testing.T) {
+	msg := "TestCJKV"
+
+	// Install test user fonts (in addition to already installed user fonts)
+	// from pkg/testdata/fonts.
+	api.LoadConfiguration()
+	if err := api.InstallFonts(userFonts(t, filepath.Join("..", "..", "testdata", "fonts"))); err != nil {
+		t.Fatalf("%s: %v\n", msg, err)
+	}
+
+	mediaBox := pdf.RectForDim(600, 600)
+	createXRefAndWritePDF(t, msg, "UserFont_CJKV", createCJKVDemo(mediaBox))
 }

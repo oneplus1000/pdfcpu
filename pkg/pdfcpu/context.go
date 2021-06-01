@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -44,10 +45,15 @@ func NewContext(rs io.ReadSeeker, conf *Configuration) (*Context, error) {
 		conf = NewDefaultConfiguration()
 	}
 
+	rdCtx, err := newReadContext(rs)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx := &Context{
 		conf,
-		newXRefTable(conf.ValidationMode),
-		newReadContext(rs),
+		newXRefTable(conf.ValidationMode, conf.ValidateLinks),
+		rdCtx,
 		newOptimizationContext(),
 		NewWriteContext(conf.Eol),
 		false,
@@ -124,7 +130,7 @@ func (ctx *Context) String() string {
 		logStr = append(logStr, fmt.Sprintf("        AdditionalStreams: %s\n\n", strings.Join(objectNumbers, ",")))
 	}
 
-	logStr = append(logStr, fmt.Sprintf("XRefTable with %d entres:\n", len(ctx.Table)))
+	logStr = append(logStr, fmt.Sprintf("XRefTable with %d entries:\n", len(ctx.Table)))
 
 	// Print sorted object list.
 	logStr = ctx.list(logStr)
@@ -150,9 +156,9 @@ func (ctx *Context) String() string {
 	return strings.Join(logStr, "")
 }
 
-func (ctx *Context) units() string {
+func (ctx *Context) unit() string {
 	u := "points"
-	switch ctx.Units {
+	switch ctx.Unit {
 	case INCHES:
 		u = "inches"
 	case CENTIMETRES:
@@ -163,8 +169,8 @@ func (ctx *Context) units() string {
 	return u
 }
 
-func (ctx *Context) convertToUnits(d Dim) Dim {
-	switch ctx.Units {
+func (ctx *Context) convertToUnit(d Dim) Dim {
+	switch ctx.Unit {
 	case INCHES:
 		return d.ToInches()
 	case CENTIMETRES:
@@ -221,132 +227,70 @@ func (ctx *Context) addPermissionsToInfoDigest(ss *[]string) {
 	}
 }
 
-// InfoDigest returns info about ctx.
-func (ctx *Context) InfoDigest() ([]string, error) {
-	var separator = "............................................"
-	var ss []string
-	v := ctx.HeaderVersion
-	if ctx.RootVersion != nil {
-		v = ctx.RootVersion
-	}
-	ss = append(ss, fmt.Sprintf("%20s: %s", "PDF version", v))
-	ss = append(ss, fmt.Sprintf("%20s: %d", "Page count", ctx.PageCount))
-
-	pd, err := ctx.PageDims()
+func (ctx *Context) addAttachmentsToInfoDigest(ss *[]string) error {
+	aa, err := ctx.ListAttachments()
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if len(aa) == 0 {
+		return nil
 	}
 
-	m := map[Dim]bool{}
-	for _, d := range pd {
-		m[d] = true
+	var list []string
+	for _, a := range aa {
+		s := a.FileName
+		if a.Desc != "" {
+			s = fmt.Sprintf("%s (%s)", s, a.Desc)
+		}
+		list = append(list, s)
+	}
+	sort.Strings(list)
+
+	for i, s := range list {
+		if i == 0 {
+			*ss = append(*ss, fmt.Sprintf("%20s: %s", "Attachments", s))
+			continue
+		}
+		*ss = append(*ss, fmt.Sprintf("%20s  %s,", "", s))
 	}
 
-	units := ctx.units()
-	s := "Page size:"
-	for d := range m {
-		dc := ctx.convertToUnits(d)
-		ss = append(ss, fmt.Sprintf("%21s %.2f x %.2f %s", s, dc.Width, dc.Height, units))
-		s = ""
-	}
-
-	ss = append(ss, fmt.Sprintf(separator))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Title", ctx.Title))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Author", ctx.Author))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Subject", ctx.Subject))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "PDF Producer", ctx.Producer))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Content creator", ctx.Creator))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Creation date", ctx.CreationDate))
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Modification date", ctx.ModDate))
-
-	if err := ctx.addKeywordsToInfoDigest(&ss); err != nil {
-		return nil, err
-	}
-
-	if err := ctx.addPropertiesToInfoDigest(&ss); err != nil {
-		return nil, err
-	}
-
-	ss = append(ss, fmt.Sprintf(separator))
-
-	s = "No"
-	if ctx.Tagged {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("              Tagged: %s", s))
-
-	s = "No"
-	if ctx.Read.Hybrid {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("              Hybrid: %s", s))
-
-	s = "No"
-	if ctx.Read.Linearized {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("          Linearized: %s", s))
-
-	s = "No"
-	if ctx.Read.UsingXRefStreams {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("  Using XRef streams: %s", s))
-
-	s = "No"
-	if ctx.Read.UsingObjectStreams {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("Using object streams: %s", s))
-
-	s = "No"
-	if ctx.Watermarked {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("         Watermarked: %s", s))
-
-	ss = append(ss, fmt.Sprintf(separator))
-
-	s = "No"
-	if ctx.Encrypt != nil {
-		s = "Yes"
-	}
-	ss = append(ss, fmt.Sprintf("%20s: %s", "Encrypted", s))
-
-	ctx.addPermissionsToInfoDigest(&ss)
-
-	//if ctx.ID != nil {
-	//	ss = append(ss, fmt.Sprintf("Id: %s", ctx.ID))
-	//}
-
-	return ss, nil
+	return nil
 }
 
 // ReadContext represents the context for reading a PDF file.
 type ReadContext struct {
-	FileName            string // The input PDF-File.
-	FileSize            int64
-	rs                  io.ReadSeeker
-	EolCount            int    // 1 or 2 characters used for eol.
-	BinaryTotalSize     int64  // total stream data
-	BinaryImageSize     int64  // total image stream data
-	BinaryFontSize      int64  // total font stream data (fontfiles)
-	BinaryImageDuplSize int64  // total obsolet image stream data after optimization
-	BinaryFontDuplSize  int64  // total obsolet font stream data after optimization
-	Linearized          bool   // File is linearized.
-	Hybrid              bool   // File is a hybrid PDF file.
-	UsingObjectStreams  bool   // File is using object streams.
-	ObjectStreams       IntSet // All object numbers of any object streams found which need to be decoded.
-	UsingXRefStreams    bool   // File is using xref streams.
-	XRefStreams         IntSet // All object numbers of any xref streams found.
+	FileName            string        // Input PDF-File.
+	FileSize            int64         // Input file size.
+	rs                  io.ReadSeeker // Input read seeker.
+	EolCount            int           // 1 or 2 characters used for eol.
+	BinaryTotalSize     int64         // total stream data
+	BinaryImageSize     int64         // total image stream data
+	BinaryFontSize      int64         // total font stream data (fontfiles)
+	BinaryImageDuplSize int64         // total obsolet image stream data after optimization
+	BinaryFontDuplSize  int64         // total obsolet font stream data after optimization
+	Linearized          bool          // File is linearized.
+	Hybrid              bool          // File is a hybrid PDF file.
+	UsingObjectStreams  bool          // File is using object streams.
+	ObjectStreams       IntSet        // All object numbers of any object streams found which need to be decoded.
+	UsingXRefStreams    bool          // File is using xref streams.
+	XRefStreams         IntSet        // All object numbers of any xref streams found.
 }
 
-func newReadContext(rs io.ReadSeeker) *ReadContext {
-	return &ReadContext{
+func newReadContext(rs io.ReadSeeker) (*ReadContext, error) {
+
+	rdCtx := &ReadContext{
 		rs:            rs,
 		ObjectStreams: IntSet{},
 		XRefStreams:   IntSet{},
 	}
+
+	fileSize, err := rs.Seek(0, io.SeekEnd)
+	if err != nil {
+		return nil, err
+	}
+	rdCtx.FileSize = fileSize
+
+	return rdCtx, nil
 }
 
 // IsObjectStreamObject returns true if object i is a an object stream.
@@ -406,9 +350,9 @@ func (rc *ReadContext) LogStats(optimized bool) {
 	textSize := rc.FileSize - rc.BinaryTotalSize // = non binary content = non stream data
 
 	log.Println("Original:")
-	log.Printf("File Size            : %s (%d bytes)\n", ByteSize(rc.FileSize), rc.FileSize)
-	log.Printf("Total Binary Data    : %s (%d bytes) %4.1f%%\n", ByteSize(rc.BinaryTotalSize), rc.BinaryTotalSize, float32(rc.BinaryTotalSize)/float32(rc.FileSize)*100)
-	log.Printf("Total Text   Data    : %s (%d bytes) %4.1f%%\n\n", ByteSize(textSize), textSize, float32(textSize)/float32(rc.FileSize)*100)
+	log.Printf("File size            : %s (%d bytes)\n", ByteSize(rc.FileSize), rc.FileSize)
+	log.Printf("Total binary data    : %s (%d bytes) %4.1f%%\n", ByteSize(rc.BinaryTotalSize), rc.BinaryTotalSize, float32(rc.BinaryTotalSize)/float32(rc.FileSize)*100)
+	log.Printf("Total other data     : %s (%d bytes) %4.1f%%\n\n", ByteSize(textSize), textSize, float32(textSize)/float32(rc.FileSize)*100)
 
 	// Only when optimizing we get details about resource data usage.
 	if optimized {
@@ -456,7 +400,7 @@ type OptimizationContext struct {
 	DuplicateInfoObjects IntSet // Possible result of manual info dict modification.
 	NonReferencedObjs    []int  // Objects that are not referenced.
 
-	FixTable  map[int]bool // map for visited objects during xreftable traversal for fixing references to free objects.
+	Cache     map[int]bool // For visited objects during optimization.
 	NullObjNr *int         // objNr of a regular null object, to be used for fixing references to free objects.
 }
 
@@ -470,7 +414,7 @@ func newOptimizationContext() *OptimizationContext {
 		DuplicateImages:      map[int]*StreamDict{},
 		DuplicateImageObjs:   IntSet{},
 		DuplicateInfoObjects: IntSet{},
-		FixTable:             map[int]bool{},
+		Cache:                map[int]bool{},
 	}
 }
 
@@ -718,10 +662,11 @@ func (oc *OptimizationContext) collectImageInfo(logStr []string) []string {
 type WriteContext struct {
 
 	// The PDF-File which gets generated.
-	*bufio.Writer
-	DirName             string
-	FileName            string
-	FileSize            int64
+	*bufio.Writer                     // A writer associated with Fp.
+	Fp                  *os.File      // A file pointer needed for detecting FileSize.
+	FileSize            int64         // The size of the written file.
+	DirName             string        // The output directory.
+	FileName            string        // The output file name.
 	SelectedPages       IntSet        // For split, trim and extract.
 	BinaryTotalSize     int64         // total stream data, counts 100% all stream data written.
 	BinaryImageSize     int64         // total image stream data written = Read.BinaryImageSize.
@@ -761,9 +706,9 @@ func (wc *WriteContext) LogStats() {
 	binaryOtherSize := binaryTotalSize - binaryImageSize - binaryFontSize // content streams
 
 	log.Stats.Println("Optimized:")
-	log.Stats.Printf("File Size            : %s (%d bytes)\n", ByteSize(fileSize), fileSize)
-	log.Stats.Printf("Total Binary Data    : %s (%d bytes) %4.1f%%\n", ByteSize(binaryTotalSize), binaryTotalSize, float32(binaryTotalSize)/float32(fileSize)*100)
-	log.Stats.Printf("Total Text   Data    : %s (%d bytes) %4.1f%%\n\n", ByteSize(textSize), textSize, float32(textSize)/float32(fileSize)*100)
+	log.Stats.Printf("File size            : %s (%d bytes)\n", ByteSize(fileSize), fileSize)
+	log.Stats.Printf("Total binary data    : %s (%d bytes) %4.1f%%\n", ByteSize(binaryTotalSize), binaryTotalSize, float32(binaryTotalSize)/float32(fileSize)*100)
+	log.Stats.Printf("Total other data     : %s (%d bytes) %4.1f%%\n\n", ByteSize(textSize), textSize, float32(textSize)/float32(fileSize)*100)
 
 	log.Stats.Println("Breakup of binary data:")
 	log.Stats.Printf("images               : %s (%d bytes) %4.1f%%\n", ByteSize(binaryImageSize), binaryImageSize, float32(binaryImageSize)/float32(binaryTotalSize)*100)

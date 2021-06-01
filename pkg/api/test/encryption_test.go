@@ -53,7 +53,51 @@ func ensurePermissionsAll(t *testing.T, listPermOutput []string) {
 	}
 }
 
+func setPermissions(t *testing.T, aes bool, keyLength int, msg, outFile string) {
+	t.Helper()
+	// Set all permissions of encrypted file w/o passwords should fail.
+	conf := confForAlgorithm(aes, keyLength, "", "")
+	conf.Permissions = pdf.PermissionsAll
+	if err := api.SetPermissionsFile(outFile, "", conf); err == nil {
+		t.Fatalf("%s: set all permissions w/o pw for %s\n", msg, outFile)
+	}
+
+	// Set all permissions of encrypted file with user password should fail.
+	conf = confForAlgorithm(aes, keyLength, "upw", "")
+	conf.Permissions = pdf.PermissionsAll
+	if err := api.SetPermissionsFile(outFile, "", conf); err == nil {
+		t.Fatalf("%s: set all permissions w/o opw for %s\n", msg, outFile)
+	}
+
+	// Set all permissions of encrypted file with owner password should fail.
+	conf = confForAlgorithm(aes, keyLength, "", "opw")
+	conf.Permissions = pdf.PermissionsAll
+	if err := api.SetPermissionsFile(outFile, "", conf); err == nil {
+		t.Fatalf("%s: set all permissions w/o both pws for %s\n", msg, outFile)
+	}
+
+	// Set all permissions of encrypted file using both passwords.
+	conf = confForAlgorithm(aes, keyLength, "upw", "opw")
+	conf.Permissions = pdf.PermissionsAll
+	if err := api.SetPermissionsFile(outFile, "", conf); err != nil {
+		t.Fatalf("%s: set all permissions for %s: %v\n", msg, outFile, err)
+	}
+
+	// List permissions using the owner password.
+	conf = confForAlgorithm(aes, keyLength, "", "opw")
+	p, err := api.GetPermissionsFile(outFile, conf)
+	if err != nil {
+		t.Fatalf("%s: get permissions %s: %v\n", msg, outFile, err)
+	}
+	// Ensure permissions all.
+	if p == nil || *p != pdf.PermissionsAll {
+		t.Fatal()
+	}
+
+}
+
 func testEncryption(t *testing.T, fileName string, alg string, keyLength int) {
+	t.Helper()
 	msg := "testEncryption"
 
 	aes := alg == "aes"
@@ -61,12 +105,14 @@ func testEncryption(t *testing.T, fileName string, alg string, keyLength int) {
 	outFile := filepath.Join(outDir, "test.pdf")
 	t.Log(inFile)
 
-	// List permissions of unencrypted file.
-	list, err := api.ListPermissionsFile(inFile, nil)
+	p, err := api.GetPermissionsFile(inFile, nil)
 	if err != nil {
-		t.Fatalf("%s: list permissions %s: %v\n", msg, inFile, err)
+		t.Fatalf("%s: get permissions %s: %v\n", msg, inFile, err)
 	}
-	ensureFullAccess(t, list)
+	// Ensure full access.
+	if p != nil {
+		t.Fatal()
+	}
 
 	// Encrypt file.
 	conf := confForAlgorithm(aes, keyLength, "upw", "opw")
@@ -75,58 +121,33 @@ func testEncryption(t *testing.T, fileName string, alg string, keyLength int) {
 	}
 
 	// List permissions of encrypted file w/o passwords should fail.
-	if list, err = api.ListPermissionsFile(outFile, nil); err == nil {
+	if list, err := api.ListPermissionsFile(outFile, nil); err == nil {
 		t.Fatalf("%s: list permissions w/o pw %s: %v\n", msg, outFile, list)
 	}
 
 	// List permissions of encrypted file using the user password.
 	conf = confForAlgorithm(aes, keyLength, "upw", "")
-	if list, err = api.ListPermissionsFile(outFile, conf); err != nil {
-		t.Fatalf("%s: list permissions %s: %v\n", msg, outFile, err)
+	p, err = api.GetPermissionsFile(outFile, conf)
+	if err != nil {
+		t.Fatalf("%s: get permissions %s: %v\n", msg, inFile, err)
 	}
-	ensurePermissionsNone(t, list)
+	// Ensure permissions none.
+	if p == nil || *p != pdf.PermissionsNone {
+		t.Fatal()
+	}
 
 	// List permissions of encrypted file using the owner password.
 	conf = confForAlgorithm(aes, keyLength, "", "opw")
-	if list, err = api.ListPermissionsFile(outFile, conf); err != nil {
-		t.Fatalf("%s: list permissions %s: %v\n", msg, outFile, err)
+	p, err = api.GetPermissionsFile(outFile, conf)
+	if err != nil {
+		t.Fatalf("%s: get permissions %s: %v\n", msg, inFile, err)
 	}
-	ensurePermissionsNone(t, list)
-
-	// Set all permissions of encrypted file w/o passwords should fail.
-	conf = confForAlgorithm(aes, keyLength, "", "")
-	conf.Permissions = pdf.PermissionsAll
-	if err = api.SetPermissionsFile(outFile, "", conf); err == nil {
-		t.Fatalf("%s: set all permissions w/o pw for %s\n", msg, outFile)
+	// Ensure permissions none.
+	if p == nil || *p != pdf.PermissionsNone {
+		t.Fatal()
 	}
 
-	// Set all permissions of encrypted file with user password should fail.
-	conf = confForAlgorithm(aes, keyLength, "upw", "")
-	conf.Permissions = pdf.PermissionsAll
-	if err = api.SetPermissionsFile(outFile, "", conf); err == nil {
-		t.Fatalf("%s: set all permissions w/o opw for %s\n", msg, outFile)
-	}
-
-	// Set all permissions of encrypted file with owner password should fail.
-	conf = confForAlgorithm(aes, keyLength, "", "opw")
-	conf.Permissions = pdf.PermissionsAll
-	if err = api.SetPermissionsFile(outFile, "", conf); err == nil {
-		t.Fatalf("%s: set all permissions w/o both pws for %s\n", msg, outFile)
-	}
-
-	// Set all permissions of encrypted file using both passwords.
-	conf = confForAlgorithm(aes, keyLength, "upw", "opw")
-	conf.Permissions = pdf.PermissionsAll
-	if err = api.SetPermissionsFile(outFile, "", conf); err != nil {
-		t.Fatalf("%s: set all permissions for %s: %v\n", msg, outFile, err)
-	}
-
-	// List permissions using the owner password.
-	conf = confForAlgorithm(aes, keyLength, "", "opw")
-	if list, err = api.ListPermissionsFile(outFile, conf); err != nil {
-		t.Fatalf("%s: list permissions for %s: %v\n", msg, outFile, err)
-	}
-	ensurePermissionsAll(t, list)
+	setPermissions(t, aes, keyLength, msg, outFile)
 
 	// Change user password.
 	conf = confForAlgorithm(aes, keyLength, "upw", "opw")

@@ -327,8 +327,8 @@ func validateAnnotationDictLink(xRefTable *pdf.XRefTable, d pdf.Dict, dictName s
 		return err
 	}
 
-	// QuadPoints, optional, number array, len=8, since V1.6
-	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "QuadPoints", OPTIONAL, pdf.V16, func(a pdf.Array) bool { return len(a) == 8 })
+	// QuadPoints, optional, number array, len= a multiple of 8, since V1.6
+	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "QuadPoints", OPTIONAL, pdf.V16, func(a pdf.Array) bool { return len(a)%8 == 0 })
 	if err != nil {
 		return err
 	}
@@ -1115,8 +1115,8 @@ func validateAnnotationDictRedact(xRefTable *pdf.XRefTable, d pdf.Dict, dictName
 
 	// see 12.5.6.23
 
-	// QuadPoints, optional, number array
-	_, err := validateNumberArrayEntry(xRefTable, d, dictName, "QuadPoints", OPTIONAL, pdf.V10, nil)
+	// QuadPoints, optional, len: a multiple of 8
+	_, err := validateNumberArrayEntry(xRefTable, d, dictName, "QuadPoints", OPTIONAL, pdf.V10, func(a pdf.Array) bool { return len(a)%8 == 0 })
 	if err != nil {
 		return err
 	}
@@ -1155,6 +1155,11 @@ func validateAnnotationDictRedact(xRefTable *pdf.XRefTable, d pdf.Dict, dictName
 	_, err = validateIntegerEntry(xRefTable, d, dictName, "Q", OPTIONAL, pdf.V10, nil)
 
 	return err
+}
+
+func validateRichMediaAnnotation(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string) error {
+	// TODO See extension level 3.
+	return nil
 }
 
 func validateExDataDict(xRefTable *pdf.XRefTable, d pdf.Dict) error {
@@ -1328,7 +1333,7 @@ func validateAppearDictEntry(xRefTable *pdf.XRefTable, d pdf.Dict, dictName stri
 }
 
 func validateBorderArrayLength(a pdf.Array) bool {
-	return len(a) == 3 || len(a) == 4
+	return len(a) == 0 || len(a) == 3 || len(a) == 4
 }
 
 func validateAnnotationDictGeneral(xRefTable *pdf.XRefTable, d pdf.Dict, dictName string) (*pdf.Name, error) {
@@ -1394,7 +1399,6 @@ func validateAnnotationDictGeneral(xRefTable *pdf.XRefTable, d pdf.Dict, dictNam
 	}
 
 	// Border, optional, array of numbers
-	//v := func(a Array) bool { return len(a) == 3 || len(a) == 4 }
 	_, err = validateNumberArrayEntry(xRefTable, d, dictName, "Border", OPTIONAL, pdf.V10, validateBorderArrayLength)
 	if err != nil {
 		return nil, err
@@ -1460,6 +1464,7 @@ func validateAnnotationDictConcrete(xRefTable *pdf.XRefTable, d pdf.Dict, dictNa
 		"Watermark":      {validateAnnotationDictWatermark, pdf.V16, false},
 		"3D":             {validateAnnotationDict3D, pdf.V16, false},
 		"Redact":         {validateAnnotationDictRedact, pdf.V17, true},
+		"RichMedia":      {validateRichMediaAnnotation, pdf.V17, false},
 	} {
 		if subtype.Value() == k {
 
@@ -1553,12 +1558,12 @@ func validatePageAnnotations(xRefTable *pdf.XRefTable, d pdf.Dict) error {
 	return nil
 }
 
-func validatePagesAnnotations(xRefTable *pdf.XRefTable, d pdf.Dict) error {
+func validatePagesAnnotations(xRefTable *pdf.XRefTable, d pdf.Dict, curPage int) (int, error) {
 
 	// Get number of pages of this PDF file.
 	pageCount := d.IntEntry("Count")
 	if pageCount == nil {
-		return errors.New("pdfcpu: validatePagesAnnotations: missing \"Count\"")
+		return curPage, errors.New("pdfcpu: validatePagesAnnotations: missing \"Count\"")
 	}
 
 	log.Validate.Printf("validatePagesAnnotations: This page node has %d pages\n", *pageCount)
@@ -1575,38 +1580,40 @@ func validatePagesAnnotations(xRefTable *pdf.XRefTable, d pdf.Dict) error {
 
 		d, err := xRefTable.DereferenceDict(v)
 		if err != nil {
-			return err
+			return curPage, err
 		}
 		if d == nil {
-			return errors.New("pdfcpu: validatePagesAnnotations: pageNodeDict is null")
+			return curPage, errors.New("pdfcpu: validatePagesAnnotations: pageNodeDict is null")
 		}
 
 		dictType := d.Type()
 		if dictType == nil {
-			return errors.New("pdfcpu: validatePagesAnnotations: missing pageNodeDict type")
+			return curPage, errors.New("pdfcpu: validatePagesAnnotations: missing pageNodeDict type")
 		}
 
 		switch *dictType {
 
 		case "Pages":
 			// Recurse over pagetree
-			err = validatePagesAnnotations(xRefTable, d)
+			curPage, err = validatePagesAnnotations(xRefTable, d, curPage)
 			if err != nil {
-				return err
+				return curPage, err
 			}
 
 		case "Page":
+			curPage++
+			xRefTable.CurPage = curPage
 			err = validatePageAnnotations(xRefTable, d)
 			if err != nil {
-				return err
+				return curPage, err
 			}
 
 		default:
-			return errors.Errorf("validatePagesAnnotations: expected dict type: %s\n", *dictType)
+			return curPage, errors.Errorf("validatePagesAnnotations: expected dict type: %s\n", *dictType)
 
 		}
 
 	}
 
-	return nil
+	return curPage, nil
 }

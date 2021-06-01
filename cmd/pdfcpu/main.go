@@ -18,21 +18,17 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-
-	"github.com/pdfcpu/pdfcpu/pkg/cli"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 var (
-	fileStats, mode, selectedPages string
-	upw, opw, key, perm, units     string
-	verbose, veryVerbose           bool
-	quiet                          bool
-	needStackTrace                 = true
-	cmdMap                         CommandMap
+	fileStats, mode, selectedPages  string
+	upw, opw, key, perm, unit, conf string
+	verbose, veryVerbose            bool
+	links, quiet, sorted            bool
+	needStackTrace                  = true
+	cmdMap                          commandMap
 )
 
 // Set by Goreleaser.
@@ -47,18 +43,16 @@ func init() {
 }
 
 func main() {
-
 	if len(os.Args) == 1 {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(0)
 	}
 
-	// The first argument is the pdfcpu command
+	// The first argument is the pdfcpu command string.
 	cmdStr := os.Args[1]
 
-	conf := pdfcpu.NewDefaultConfiguration()
-
-	str, err := cmdMap.Handle(cmdStr, "", conf)
+	// Process command string for given configuration.
+	str, err := cmdMap.process(cmdStr, "")
 	if err != nil {
 		if len(str) > 0 {
 			cmdStr = fmt.Sprintf("%s %s", str, os.Args[2])
@@ -66,57 +60,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v \"%s\"\n", err, cmdStr)
 		fmt.Fprintln(os.Stderr, "Run 'pdfcpu help' for usage.")
 		os.Exit(1)
-	}
-
-	os.Exit(0)
-}
-
-func parseFlags(cmd *Command) {
-
-	// Execute after command completion.
-
-	i := 2
-
-	// This command uses a subcommand and is therefore a special case => start flag processing after 3rd argument.
-	if cmd.handler == nil {
-		if len(os.Args) == 2 {
-			fmt.Fprintln(os.Stderr, cmd.usageShort)
-			os.Exit(1)
-		}
-		i = 3
-	}
-
-	// Parse commandline flags.
-	if !flag.CommandLine.Parsed() {
-
-		err := flag.CommandLine.Parse(os.Args[i:])
-		if err != nil {
-			os.Exit(1)
-		}
-
-		initLogging(verbose, veryVerbose)
-	}
-
-	return
-}
-
-func process(cmd *cli.Command) {
-
-	out, err := cli.Process(cmd)
-
-	if err != nil {
-		if needStackTrace {
-			fmt.Fprintf(os.Stderr, "Fatal: %+v\n", err)
-		} else {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
-		os.Exit(1)
-	}
-
-	if out != nil && !quiet {
-		for _, s := range out {
-			fmt.Fprintln(os.Stdout, s)
-		}
 	}
 
 	os.Exit(0)

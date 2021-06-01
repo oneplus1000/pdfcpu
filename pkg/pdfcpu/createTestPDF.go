@@ -84,23 +84,144 @@ func CreateDemoXRef(p Page) (*XRefTable, error) {
 	return xRefTable, nil
 }
 
-func createFontDict(xRefTable *XRefTable, coreFontName string) (*IndirectRef, error) {
-	d := NewDict()
-	d.InsertName("Type", "Font")
-	d.InsertName("Subtype", "Type1")
-	d.InsertName("BaseFont", coreFontName)
-	if coreFontName != "Symbol" && coreFontName != "ZapfDingbats" {
-		d.InsertName("Encoding", "WinAnsiEncoding")
+func addPageTreeForResourceDictInheritanceDemo(xRefTable *XRefTable, rootDict Dict) error {
+
+	// Create root page node.
+
+	fIndRef, err := createFontDict(xRefTable, "Courier")
+	if err != nil {
+		return err
 	}
-	return xRefTable.IndRefForNewObject(d)
+
+	rootPagesDict := Dict(
+		map[string]Object{
+			"Type":     Name("Pages"),
+			"Count":    Integer(1),
+			"MediaBox": RectForFormat("A4").Array(),
+			"Resources": Dict(
+				map[string]Object{
+					"Font": Dict(
+						map[string]Object{
+							"F99": *fIndRef,
+						},
+					),
+				},
+			),
+		},
+	)
+
+	rootPageIndRef, err := xRefTable.IndRefForNewObject(rootPagesDict)
+	if err != nil {
+		return err
+	}
+
+	// Create intermediate page node.
+
+	f100IndRef, err := createFontDict(xRefTable, "Courier-Bold")
+	if err != nil {
+		return err
+	}
+
+	pagesDict := Dict(
+		map[string]Object{
+			"Type":     Name("Pages"),
+			"Count":    Integer(1),
+			"MediaBox": RectForFormat("A4").Array(),
+			"Resources": Dict(
+				map[string]Object{
+					"Font": Dict(
+						map[string]Object{
+							"F100": *f100IndRef,
+						},
+					),
+				},
+			),
+		},
+	)
+
+	pagesIndRef, err := xRefTable.IndRefForNewObject(pagesDict)
+	if err != nil {
+		return err
+	}
+
+	// Create leaf page node.
+
+	p := Page{MediaBox: RectForFormat("A4"), Fm: FontMap{}, Buf: new(bytes.Buffer)}
+
+	fontName := "Times-Roman"
+	k := p.Fm.EnsureKey(fontName)
+	td := TextDescriptor{
+		Text:     "This font is Times-Roman and it is defined in the resource dict of this page dict.",
+		FontName: fontName,
+		FontKey:  k,
+		FontSize: 12,
+		Scale:    1.,
+		ScaleAbs: true,
+		X:        300,
+		Y:        400,
+	}
+
+	WriteMultiLine(p.Buf, p.MediaBox, nil, td)
+
+	fontName = "Courier"
+	td = TextDescriptor{
+		Text:     "This font is Courier and it is inherited from the page root.",
+		FontName: fontName,
+		FontKey:  "F99",
+		FontSize: 12,
+		Scale:    1.,
+		ScaleAbs: true,
+		X:        300,
+		Y:        300,
+	}
+
+	WriteMultiLine(p.Buf, p.MediaBox, nil, td)
+
+	fontName = "Courier-Bold"
+	td = TextDescriptor{
+		Text:     "This font is Courier-Bold and it is inherited from an intermediate page node.",
+		FontName: fontName,
+		FontKey:  "F100",
+		FontSize: 12,
+		Scale:    1.,
+		ScaleAbs: true,
+		X:        300,
+		Y:        350,
+	}
+
+	WriteMultiLine(p.Buf, p.MediaBox, nil, td)
+
+	pageIndRef, err := createDemoPage(xRefTable, *pagesIndRef, p)
+	if err != nil {
+		return err
+	}
+
+	pagesDict.Insert("Kids", Array{*pageIndRef})
+	pagesDict.Insert("Parent", *rootPageIndRef)
+
+	rootPagesDict.Insert("Kids", Array{*pagesIndRef})
+	rootDict.Insert("Pages", *rootPageIndRef)
+
+	return nil
 }
 
-func createZapfDingbatsFontDict(xRefTable *XRefTable) (*IndirectRef, error) {
-	d := NewDict()
-	d.InsertName("Type", "Font")
-	d.InsertName("Subtype", "Type1")
-	d.InsertName("BaseFont", "ZapfDingbats")
-	return xRefTable.IndRefForNewObject(d)
+// CreateResourceDictInheritanceDemoXRef creates a page tree for testing resource dict inheritance.
+func CreateResourceDictInheritanceDemoXRef() (*XRefTable, error) {
+	xRefTable, err := createXRefTableWithRootDict()
+	if err != nil {
+		return nil, err
+	}
+
+	rootDict, err := xRefTable.Catalog()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = addPageTreeForResourceDictInheritanceDemo(xRefTable, rootDict); err != nil {
+		return nil, err
+	}
+
+	return xRefTable, nil
 }
 
 func createFunctionalShadingDict(xRefTable *XRefTable) Dict {
@@ -156,7 +277,7 @@ func createStreamObjForHalftoneDictType6(xRefTable *XRefTable) (*IndirectRef, er
 		Content: []byte{},
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -176,7 +297,7 @@ func createStreamObjForHalftoneDictType10(xRefTable *XRefTable) (*IndirectRef, e
 		Content: []byte{},
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -196,7 +317,7 @@ func createStreamObjForHalftoneDictType16(xRefTable *XRefTable) (*IndirectRef, e
 		Content: []byte{},
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -215,7 +336,7 @@ func createPostScriptCalculatorFunctionStreamDict(xRefTable *XRefTable) (*Indire
 		Content: []byte{},
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -288,7 +409,7 @@ func addResources(xRefTable *XRefTable, pageDict Dict, fontName string) error {
 				f,
 				Dict(
 					map[string]Object{
-						"SubType": Name("DeviceN"),
+						"Subtype": Name("DeviceN"),
 					},
 				),
 			},
@@ -299,7 +420,7 @@ func addResources(xRefTable *XRefTable, pageDict Dict, fontName string) error {
 				f,
 				Dict(
 					map[string]Object{
-						"SubType": Name("NChannel"),
+						"Subtype": Name("NChannel"),
 						"Process": Dict(
 							map[string]Object{
 								"ColorSpace": Array{
@@ -549,7 +670,7 @@ func addContents(xRefTable *XRefTable, pageDict Dict, p Page) error {
 	CreateTestPageContent(p)
 	sd, _ := xRefTable.NewStreamDictForBuf(p.Buf.Bytes())
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return err
 	}
 
@@ -923,7 +1044,6 @@ func addPageTreeWithAnnotations(xRefTable *XRefTable, rootDict Dict, fontName st
 	}
 
 	pagesDict.Insert("Kids", Array{*pageIndRef})
-
 	rootDict.Insert("Pages", *parentPageIndRef)
 
 	return pageIndRef, nil
@@ -1217,7 +1337,7 @@ func createNormalAppearanceForFormField(xRefTable *XRefTable, w, h float64) (*In
 		Content: b.Bytes(),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1242,7 +1362,7 @@ func createRolloverAppearanceForFormField(xRefTable *XRefTable, w, h float64) (*
 		Content: b.Bytes(),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1267,7 +1387,7 @@ func createDownAppearanceForFormField(xRefTable *XRefTable, w, h float64) (*Indi
 		Content: b.Bytes(),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1381,7 +1501,7 @@ func createYesAppearance(xRefTable *XRefTable, resourceDict Dict, w, h float64) 
 		Content: b.Bytes(),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1417,7 +1537,7 @@ func createOffAppearance(xRefTable *XRefTable, resourceDict Dict, w, h float64) 
 		Content: b.Bytes(),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1425,7 +1545,7 @@ func createOffAppearance(xRefTable *XRefTable, resourceDict Dict, w, h float64) 
 }
 
 func createCheckBoxButtonField(xRefTable *XRefTable, pageAnnots *Array) (*IndirectRef, error) {
-	fontDict, err := createZapfDingbatsFontDict(xRefTable)
+	fontDict, err := createFontDict(xRefTable, "ZapfDingbats")
 	if err != nil {
 		return nil, err
 	}
@@ -1506,7 +1626,7 @@ func createRadioButtonField(xRefTable *XRefTable, pageAnnots *Array) (*IndirectR
 		return nil, err
 	}
 
-	fontDict, err := createZapfDingbatsFontDict(xRefTable)
+	fontDict, err := createFontDict(xRefTable, "ZapfDingbats")
 	if err != nil {
 		return nil, err
 	}
@@ -1691,7 +1811,7 @@ func streamObjForXFAElement(xRefTable *XRefTable, s string) (*IndirectRef, error
 		Content: []byte(s),
 	}
 
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 
@@ -1832,7 +1952,7 @@ func CreateContextWithXRefTable(conf *Configuration, pageDim *Dim) (*Context, er
 
 func createDemoContentStreamDict(xRefTable *XRefTable, pageDict Dict, b []byte) (*IndirectRef, error) {
 	sd, _ := xRefTable.NewStreamDictForBuf(b)
-	if err := encodeStream(sd); err != nil {
+	if err := sd.Encode(); err != nil {
 		return nil, err
 	}
 	return xRefTable.IndRefForNewObject(*sd)
@@ -1867,12 +1987,14 @@ func createDemoPage(xRefTable *XRefTable, parentPageIndRef IndirectRef, p Page) 
 		return nil, err
 	}
 
-	resDict := Dict(
-		map[string]Object{
-			"Font": fontRes,
-		},
-	)
-	pageDict.Insert("Resources", resDict)
+	if len(fontRes) > 0 {
+		resDict := Dict(
+			map[string]Object{
+				"Font": fontRes,
+			},
+		)
+		pageDict.Insert("Resources", resDict)
+	}
 
 	ir, err := createDemoContentStreamDict(xRefTable, pageDict, p.Buf.Bytes())
 	if err != nil {

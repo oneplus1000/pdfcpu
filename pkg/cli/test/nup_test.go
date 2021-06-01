@@ -20,24 +20,25 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/cli"
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 func testNUp(t *testing.T, msg string, inFiles []string, outFile string, selectedPages []string, desc string, n int, isImg bool) {
 	t.Helper()
 
 	var (
-		nup *pdf.NUp
+		nup *pdfcpu.NUp
 		err error
 	)
 
 	if isImg {
-		if nup, err = pdf.ImageNUpConfig(n, desc); err != nil {
+		if nup, err = api.ImageNUpConfig(n, desc); err != nil {
 			t.Fatalf("%s %s: %v\n", msg, outFile, err)
 		}
 	} else {
-		if nup, err = pdf.PDFNUpConfig(n, desc); err != nil {
+		if nup, err = api.PDFNUpConfig(n, desc); err != nil {
 			t.Fatalf("%s %s: %v\n", msg, outFile, err)
 		}
 	}
@@ -74,7 +75,7 @@ func TestNUpCommand(t *testing.T) {
 			[]string{filepath.Join(resDir, "pdfchip3.png")},
 			filepath.Join(outDir, "out.pdf"),
 			nil,
-			"f:A3L",
+			"form:A3L",
 			9,
 			true},
 
@@ -86,7 +87,7 @@ func TestNUpCommand(t *testing.T) {
 			},
 			filepath.Join(outDir, "out1.pdf"),
 			nil,
-			"f:Tabloid, b:off, m:0",
+			"form:Tabloid, bo:off, ma:0",
 			6,
 			true},
 	} {

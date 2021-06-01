@@ -32,10 +32,28 @@ func TestInstallFontsCommand(t *testing.T) {
 	}
 }
 
+func TestInstallTTCFontsCommand(t *testing.T) {
+	msg := "TestInstallTTCFontsCommand"
+	userFontName := filepath.Join(fontDir, "Songti.ttc")
+	cmd := cli.InstallFontsCommand([]string{userFontName}, nil)
+	if _, err := cli.Process(cmd); err != nil {
+		t.Fatalf("%s install fonts: %v\n", msg, err)
+	}
+}
+
 func TestListFontsCommand(t *testing.T) {
 	msg := "TestListFontsCommand"
 	cmd := cli.ListFontsCommand(nil)
 	if _, err := cli.Process(cmd); err != nil {
 		t.Fatalf("%s list fonts: %v\n", msg, err)
+	}
+}
+
+func TestCreateCheatSheetsFontsCommand(t *testing.T) {
+	msg := "TestCreateCheatSheetsFontsCommand"
+	userFontName := filepath.Join(fontDir, "Songti.ttc")
+	cmd := cli.CreateCheatSheetsFontsCommand([]string{userFontName}, nil)
+	if _, err := cli.Process(cmd); err != nil {
+		t.Fatalf("%s create cheat sheets fonts: %v\n", msg, err)
 	}
 }

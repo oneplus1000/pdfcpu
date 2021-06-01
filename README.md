@@ -1,8 +1,8 @@
 # pdfcpu: a Go PDF processor
 
-[![Build Status](https://travis-ci.org/pdfcpu/pdfcpu.svg?branch=master)](https://travis-ci.org/pdfcpu/pdfcpu)
-[![GoDoc](https://godoc.org/github.com/pdfcpu/pdfcpu?status.svg)](https://godoc.org/github.com/pdfcpu/pdfcpu)
+[![Test](https://github.com/pdfcpu/pdfcpu/workflows/Test/badge.svg)](https://github.com/pdfcpu/pdfcpu/actions)
 [![Coverage Status](https://coveralls.io/repos/github/pdfcpu/pdfcpu/badge.svg?branch=master)](https://coveralls.io/github/pdfcpu/pdfcpu?branch=master)
+[![GoDoc](https://godoc.org/github.com/pdfcpu/pdfcpu?status.svg)](https://pkg.go.dev/github.com/pdfcpu/pdfcpu)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pdfcpu/pdfcpu)](https://goreportcard.com/report/github.com/pdfcpu/pdfcpu)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Latest release](https://img.shields.io/github/release/pdfcpu/pdfcpu.svg)](https://github.com/pdfcpu/pdfcpu/releases)
@@ -17,16 +17,19 @@ It provides both an API and a CLI. Supported are all versions up to PDF 1.7 (ISO
 This is an effort to build a comprehensive PDF processing library from the ground up written in Go. Over time pdfcpu aims to support the standard range of PDF processing features and also any interesting use cases that may present themselves along the way.
 
 <p align="center">
-  <kbd><a href="https://pdfcpu.io/core/grid"><img src="resources/gridpdf.png" height="150"></a></kbd>&nbsp;
+  <kbd><a href="https://pdfcpu.io/generate/grid"><img src="resources/gridpdf.png" height="150"></a></kbd>&nbsp;
   <kbd><a href="https://pdfcpu.io/core/watermark"><img src="resources/wmi1abs.png" height="150"></a></kbd>&nbsp;
-  <kbd><a href="https://pdfcpu.io/core/nup"><img src="resources/nup9pdf.png" height="150"></a></kbd>&nbsp;
+  <kbd><a href="https://pdfcpu.io/generate/nup"><img src="resources/nup9pdf.png" height="150"></a></kbd>&nbsp;
+  <kbd><a href="https://pdfcpu.io/fonts/fonts"><img src="resources/cjkv.png" height="150"></a></kbd>&nbsp;
   <kbd><a href="https://pdfcpu.io/core/stamp"><img src="resources/4exp.png" height="150"></a></kbd><br><br>
   <kbd><a href="https://pdfcpu.io/core/stamp"><img src="resources/sti.png" height="150"></a></kbd>&nbsp;
   <kbd><img src="resources/hold3.png" height="150"></kbd>&nbsp;
   <kbd><a href="https://pdfcpu.io/core/watermark"><img src="resources/wmi4.png" height="150"></a></kbd>&nbsp;<br><br>
+  <kbd><a href="https://pdfcpu.io/generate/booklet"><img src="resources/book2A4p1.png" height="150"></a></kbd>
   <kbd><a href="https://pdfcpu.io/core/stamp"><img src="resources/stp.png" height="150"></a></kbd>&nbsp;
-  <kbd><a href="https://pdfcpu.io/core/grid"><img src="resources/gridimg.png" height="150"></a></kbd>
+  <kbd><a href="https://pdfcpu.io/generate/grid"><img src="resources/gridimg.png" height="150"></a></kbd>
   <kbd><a href="https://pdfcpu.io/core/stamp"><img src="resources/stRoundBorder.png" height="150"></a></kbd>
+  <kbd><a href="https://pdfcpu.io/generate/booklet"><img src="resources/book4A4p1.png" height="150"></a></kbd>
 </p>
 
 ## Focus
@@ -36,19 +39,22 @@ The main focus lies on strong support for batch processing and scripting via a r
 ## Command Set
 
 * [attachments](https://pdfcpu.io/attach/attach)
+* [booklet](https://pdfcpu.io/generate/booklet)
+* [boxes](https://pdfcpu.io/boxes/boxes)
 * [change owner password](https://pdfcpu.io/encrypt/change_opw)
 * [change user password](https://pdfcpu.io/encrypt/change_upw)
 * [collect](https://pdfcpu.io/core/collect)
+* [crop](https://pdfcpu.io/core/crop)
 * [decrypt](https://pdfcpu.io/encrypt/decryptPDF)
 * [encrypt](https://pdfcpu.io/encrypt/encryptPDF)
 * [extract](https://pdfcpu.io/extract/extract)
 * [fonts](https://pdfcpu.io/fonts/fonts)
-* [grid](https://pdfcpu.io/core/grid)
+* [grid](https://pdfcpu.io/generate/grid)
 * [import](https://pdfcpu.io/generate/import)
 * [info](https://pdfcpu.io/info)
 * [keywords](https://pdfcpu.io/keywords/keywords)
 * [merge](https://pdfcpu.io/core/merge)
-* [nup](https://pdfcpu.io/core/nup)
+* [nup](https://pdfcpu.io/generate/nup)
 * [optimize](https://pdfcpu.io/core/optimize)
 * [pages](https://pdfcpu.io/pages/pages)
 * [permissions](https://pdfcpu.io/encrypt/perm_add)
@@ -65,13 +71,13 @@ The main focus lies on strong support for batch processing and scripting via a r
 
 * The main entry point is [pdfcpu.io](https://pdfcpu.io).
 * For CLI examples also go to [pdfcpu.io](https://pdfcpu.io). There you will find explanations of all the commands and their parameters.
-* For API examples of all pdfcpu operations please refer to [GoDoc](https://godoc.org/github.com/pdfcpu/pdfcpu/pkg/api).
+* For API examples of all pdfcpu operations please refer to [GoDoc](https://pkg.go.dev/github.com/pdfcpu/pdfcpu/pkg/api).
 
 ### GoDoc
 
-* [pdfcpu package](https://godoc.org/github.com/pdfcpu/pdfcpu)
-* [pdfcpu API](https://godoc.org/github.com/pdfcpu/pdfcpu/pkg/api)
-* [pdfcpu CLI](https://godoc.org/github.com/pdfcpu/pdfcpu/pkg/cli)
+* [pdfcpu package](https://pkg.go.dev/github.com/pdfcpu/pdfcpu)
+* [pdfcpu API](https://pkg.go.dev/github.com/pdfcpu/pdfcpu/pkg/api)
+* [pdfcpu CLI](https://pkg.go.dev/github.com/pdfcpu/pdfcpu/pkg/cli)
 
 ## Reminder
 
@@ -95,7 +101,7 @@ Get the latest binary [here](https://github.com/pdfcpu/pdfcpu/releases).
 
 ### Using GOPATH
 
-Required go version for building: go1.14 and up
+Required go version for building: go1.15 and up
 
 ```
 go get github.com/pdfcpu/pdfcpu/cmd/...
@@ -167,11 +173,16 @@ If processing your PDF with pdfcpu crashes during validation and can be opened b
 ## Contributors
 
 Thanks goes to these wonderful people:
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 ||||||||
 | :---: | :---: | :---: | :---: | :---: |  :---: | :---: |
-| [<img src="https://avatars1.githubusercontent.com/u/11322155?v=4" width="100px"/><br /><sub><b>Horst Rutter</b></sub>](https://github.com/hhrutter)<br /> |[<img src="https://avatars0.githubusercontent.com/u/5140211?v=4" width="100px"/><br /><sub><b>haldyr</b></sub>](https://github.com/haldyr)<br /> | [<img src="https://avatars3.githubusercontent.com/u/20608155?v=4" width="100px"/><br /><sub><b>Vyacheslav</b></sub>](https://github.com/SimePel)<br /> | [<img src="https://avatars1.githubusercontent.com/u/617459?v=4" width="100px"/><br /><sub><b>Erik Unger</b></sub>](https://github.com/ungerik)<br /> | [<img src="https://avatars1.githubusercontent.com/u/13079058?v=4" width="100px"/><br /><sub><b>Richard Wilkes</b></sub>](https://github.com/richardwilkes)<br /> | [<img src="https://avatars1.githubusercontent.com/u/16303386?s=400&v=4" width="100px"/><br /><sub><b>minenok-tutu</b></sub>](https://github.com/minenok-tutu)<br /> | [<img src="https://avatars0.githubusercontent.com/u/1965445?s=400&v=4" width="100px"/><br /><sub><b>Mateusz Burniak</b></sub>](https://github.com/matbur)<br /> |
-| [<img src="https://avatars2.githubusercontent.com/u/1175110?s=400&v=4" width="100px"/><br /><sub><b>Dmitry Harnitski</b></sub>](https://github.com/dharnitski)<br /> |[<img src="https://avatars0.githubusercontent.com/u/1074083?s=400&v=4" width="100px"/><br /><sub><b>ryarnyah</b></sub>](https://github.com/ryarnyah)<br /> |[<img src="https://avatars0.githubusercontent.com/u/13267?s=400&v=4" width="100px"/><br /><sub><b>Sam Giffney</b></sub>](https://github.com/s01ipsist)<br /> |[<img src="https://avatars3.githubusercontent.com/u/32948066?s=400&v=4" width="100px"/><br /><sub><b>Carlos Eduardo Witte</b></sub>](https://github.com/cewitte)<br /> 
+| [<img src="https://avatars1.githubusercontent.com/u/11322155?v=4" width="100px"/><br/><sub><b>Horst Rutter</b></sub>](https://github.com/hhrutter) | [<img src="https://avatars0.githubusercontent.com/u/5140211?v=4" width="100px"/><br/><sub><b>haldyr</b></sub>](https://github.com/haldyr) | [<img src="https://avatars3.githubusercontent.com/u/20608155?v=4" width="100px"/><br/><sub><b>Vyacheslav</b></sub>](https://github.com/SimePel) | [<img src="https://avatars1.githubusercontent.com/u/617459?v=4" width="100px"/><br/><sub><b>Erik Unger</b></sub>](https://github.com/ungerik) | [<img src="https://avatars1.githubusercontent.com/u/13079058?v=4" width="100px"/><br/><sub><b>Richard Wilkes</b></sub>](https://github.com/richardwilkes) | [<img src="https://avatars1.githubusercontent.com/u/16303386?s=400&v=4" width="100px"/><br/><sub><b>minenok-tutu</b></sub>](https://github.com/minenok-tutu) | [<img src="https://avatars0.githubusercontent.com/u/1965445?s=400&v=4" width="100px"/><br/><sub><b>Mateusz Burniak</b></sub>](https://github.com/matbur) |
+| [<img src="https://avatars2.githubusercontent.com/u/1175110?s=400&v=4" width="100px"/><br/><sub><b>Dmitry Harnitski</b></sub>](https://github.com/dharnitski) | [<img src="https://avatars0.githubusercontent.com/u/1074083?s=400&v=4" width="100px"/><br/><sub><b>ryarnyah</b></sub>](https://github.com/ryarnyah) | [<img src="https://avatars0.githubusercontent.com/u/13267?s=400&v=4" width="100px"/><br/><sub><b>Sam Giffney</b></sub>](https://github.com/s01ipsist) | [<img src="https://avatars3.githubusercontent.com/u/32948066?s=400&v=4" width="100px"/><br /><sub><b>Carlos Eduardo Witte</b></sub>](https://github.com/cewitte) | [<img src="https://avatars1.githubusercontent.com/u/2374948?s=400&u=a36e5f8da8dc1c102bc4d283f25e4c61cae7f985&v=4" width="100px"/><br/><sub><b>minusworld</b></sub>](https://github.com/minusworld) | [<img src="https://avatars0.githubusercontent.com/u/18538487?s=400&u=b9e628dfc60f672a887be2ed04a791195829943e&v=4" width="100px"/><br/><sub><b>Witold Konior</b></sub>](https://github.com/jozuenoon) | [<img src="https://avatars0.githubusercontent.com/u/630151?s=400&v=4" width="100px"/><br/><sub><b>joonas.fi</b></sub>](https://github.com/joonas-fi) |
+| [<img src="https://avatars3.githubusercontent.com/u/10349817?s=400&u=93bacb23bd2909d5b6c5b644a8d4cdd947422ee1&v=4" width="100px"/><br/><sub><b>Henrik Reinstädtler</b></sub>](https://github.com/henrixapp) | [<img src="https://avatars1.githubusercontent.com/u/72016286?s=400&v=4" width="100px"/><br/><sub><b>VMorozov-wh</b></sub>](https://github.com/VMorozov-wh) | [<img src="https://avatars0.githubusercontent.com/u/31929422?s=400&v=4" width="100px"/><br/><sub><b>Benoit KUGLER</b></sub>](https://github.com/benoitkugler) | [<img src="https://avatars.githubusercontent.com/u/704919?s=400&v=4" width="100px"/><br/><sub><b>Adam Greenhall</b></sub>](https://github.com/adamgreenhall) | [<img src="https://avatars.githubusercontent.com/u/5201812?s=400&u=8a0a9fca4560be71d4923299ddebf877854eea54&v=4" width="100px"/><br/><sub><b>moritamori</b></sub>](https://github.com/moritamori) | [<img src="https://avatars.githubusercontent.com/u/41904529?s=400&u=044396494285ad806e86d1936c390b3071ce57c0&v=4" width="100px"/><br/><sub><b>JanBaryla</b></sub>](https://github.com/JanBaryla) | [<img src="https://avatars.githubusercontent.com/u/43145244?s=400&u=89a689f1a854ce0f57ae2a0333c82bfdc5723bb9&v=4" width="100px"/><br/><sub><b>TheDiscordian</b></sub>](https://github.com/TheDiscordian) |
+| [<img src="https://avatars.githubusercontent.com/u/15472552?v=4" width="100px"/><br/><sub><b>Rafael Garcia Argente</b></sub>](https://github.com/rgargente) |||||||
+
+
 <!-- ALL-CONTRIBUTORS-LIST:END - Do not remove or modify this section -->
 
 ## Code of Conduct

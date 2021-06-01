@@ -31,7 +31,6 @@ import (
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 )
 
 var inDir, outDir, resDir string
@@ -135,8 +134,16 @@ func hashMd5(f string) (string, error) {
 	return fmt.Sprintf("%+x", h), nil
 }
 
+func imageFileNames(t *testing.T, dir string) []string {
+	t.Helper()
+	fn, err := pdfcpu.ImageFileNames(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fn
+}
 func TestMain(m *testing.M) {
-	inDir = "../../testdata"
+	inDir = filepath.Join("..", "..", "testdata")
 	resDir = filepath.Join(inDir, "resources")
 	var err error
 
@@ -171,8 +178,8 @@ func copyFile(t *testing.T, srcFileName, destFileName string) error {
 	_, err = io.Copy(to, from)
 	return err
 }
-func BenchmarkValidateCommand(b *testing.B) {
-	msg := "BenchmarkValidateCommand"
+func BenchmarkValidate(b *testing.B) {
+	msg := "BenchmarkValidate"
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		f, err := os.Open(filepath.Join(inDir, "gobook.0.pdf"))
@@ -261,11 +268,11 @@ func TestManipulateContext(t *testing.T) {
 	// Manipulate the PDF Context.
 	// Eg. Let's stamp all pages with pageCount and current timestamp.
 	text := fmt.Sprintf("Pages: %d \n Current time: %v", ctx.PageCount, time.Now())
-	wm, err := pdf.ParseTextWatermarkDetails(text, "font:Times-Italic, scale:.9", true)
+	wm, err := api.TextWatermark(text, "font:Times-Italic, scale:.9", true, false, pdfcpu.POINTS)
 	if err != nil {
 		t.Fatalf("%s: ParseTextWatermarkDetails: %v\n", msg, err)
 	}
-	if err := api.WatermarkContext(ctx, nil, wm); err != nil {
+	if err := ctx.AddWatermarks(nil, wm); err != nil {
 		t.Fatalf("%s: WatermarkContext: %v\n", msg, err)
 	}
 
@@ -278,8 +285,8 @@ func TestManipulateContext(t *testing.T) {
 func TestInfo(t *testing.T) {
 	msg := "TestInfo"
 	inFile := filepath.Join(inDir, "5116.DCT_Filter.pdf")
-	inFile = "/Users/oneplus/Downloads/response(1).pdf"
-	if _, err := api.InfoFile(inFile, nil); err != nil {
+
+	if _, err := api.InfoFile(inFile, nil, nil); err != nil {
 		t.Fatalf("%s: %v\n", msg, err)
 	}
 }

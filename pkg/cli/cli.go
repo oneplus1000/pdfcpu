@@ -19,14 +19,14 @@ package cli
 
 import (
 	"github.com/pdfcpu/pdfcpu/pkg/api"
-	pdf "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pkg/errors"
 )
 
 // Validate inFile against ISO-32000-1:2008.
 func Validate(cmd *Command) ([]string, error) {
 	conf := cmd.Conf
-	if conf != nil && conf.ValidationMode == pdf.ValidationNone {
+	if conf != nil && conf.ValidationMode == pdfcpu.ValidationNone {
 		return nil, errors.New("validate: mode == ValidationNone")
 	}
 
@@ -104,6 +104,11 @@ func NUp(cmd *Command) ([]string, error) {
 	return nil, api.NUpFile(cmd.InFiles, *cmd.OutFile, cmd.PageSelection, cmd.NUp, cmd.Conf)
 }
 
+// Booklet arranges selected PDF pages to outFile in an order and arrangement that form a small book.
+func Booklet(cmd *Command) ([]string, error) {
+	return nil, api.BookletFile(cmd.InFiles, *cmd.OutFile, cmd.PageSelection, cmd.NUp, cmd.Conf)
+}
+
 // ImportImages appends PDF pages containing images to outFile which will be created if necessary.
 // ImportImages turns image files into a page sequence and writes the result to outFile.
 // In its simplest form this operation converts an image into a PDF.
@@ -114,7 +119,7 @@ func ImportImages(cmd *Command) ([]string, error) {
 // InsertPages inserts a blank page before or after each selected page.
 func InsertPages(cmd *Command) ([]string, error) {
 	before := true
-	if cmd.Mode == pdf.INSERTPAGESAFTER {
+	if cmd.Mode == pdfcpu.INSERTPAGESAFTER {
 		before = false
 	}
 	return nil, api.InsertPagesFile(*cmd.InFile, *cmd.OutFile, cmd.PageSelection, before, cmd.Conf)
@@ -157,7 +162,7 @@ func ExtractContent(cmd *Command) ([]string, error) {
 
 // ExtractMetadata dumps all metadata dict entries for inFile into outDir.
 func ExtractMetadata(cmd *Command) ([]string, error) {
-	return nil, api.ExtractMetadataFile(*cmd.InFile, *cmd.OutDir, cmd.PageSelection, cmd.Conf)
+	return nil, api.ExtractMetadataFile(*cmd.InFile, *cmd.OutDir, cmd.Conf)
 }
 
 // ListAttachments returns a list of embedded file attachments for inFile.
@@ -167,7 +172,7 @@ func ListAttachments(cmd *Command) ([]string, error) {
 
 // AddAttachments embeds inFiles into a PDF context read from inFile and writes the result to outFile.
 func AddAttachments(cmd *Command) ([]string, error) {
-	return nil, api.AddAttachmentsFile(*cmd.InFile, *cmd.OutFile, cmd.InFiles, cmd.Mode == pdf.ADDATTACHMENTSPORTFOLIO, cmd.Conf)
+	return nil, api.AddAttachmentsFile(*cmd.InFile, *cmd.OutFile, cmd.InFiles, cmd.Mode == pdfcpu.ADDATTACHMENTSPORTFOLIO, cmd.Conf)
 }
 
 // RemoveAttachments deletes inFiles from a PDF context read from inFile and writes the result to outFile.
@@ -182,7 +187,12 @@ func ExtractAttachments(cmd *Command) ([]string, error) {
 
 // Info gathers information about inFile and returns the result as []string.
 func Info(cmd *Command) ([]string, error) {
-	return api.InfoFile(*cmd.InFile, cmd.Conf)
+	return api.InfoFile(*cmd.InFile, cmd.PageSelection, cmd.Conf)
+}
+
+// CreateCheatSheetsFonts creates single page PDF cheat sheets for user fonts in current dir.
+func CreateCheatSheetsFonts(cmd *Command) ([]string, error) {
+	return nil, api.CreateCheatSheetsUserFonts(cmd.InFiles)
 }
 
 // ListFonts gathers information about supported fonts and returns the result as []string.
@@ -190,7 +200,7 @@ func ListFonts(cmd *Command) ([]string, error) {
 	return api.ListFonts()
 }
 
-// InstallFonts gathers information about supported fonts and returns the result as []string.
+// InstallFonts installs True Type fonts into the pdfcpu pconfig dir.
 func InstallFonts(cmd *Command) ([]string, error) {
 	return nil, api.InstallFonts(cmd.InFiles)
 }
@@ -228,4 +238,24 @@ func RemoveProperties(cmd *Command) ([]string, error) {
 // Collect creates a custom page sequence for selected pages of inFile and writes result to outFile.
 func Collect(cmd *Command) ([]string, error) {
 	return nil, api.CollectFile(*cmd.InFile, *cmd.OutFile, cmd.PageSelection, cmd.Conf)
+}
+
+// ListBoxes returns inFile's page boundaries.
+func ListBoxes(cmd *Command) ([]string, error) {
+	return api.ListBoxesFile(*cmd.InFile, cmd.PageSelection, cmd.PageBoundaries, cmd.Conf)
+}
+
+// AddBoxes adds page boundaries to inFile's page tree and writes the result to outFile.
+func AddBoxes(cmd *Command) ([]string, error) {
+	return nil, api.AddBoxesFile(*cmd.InFile, *cmd.OutFile, cmd.PageSelection, cmd.PageBoundaries, cmd.Conf)
+}
+
+// RemoveBoxes deletes page boundaries from inFile's page tree and writes the result to outFile.
+func RemoveBoxes(cmd *Command) ([]string, error) {
+	return nil, api.RemoveBoxesFile(*cmd.InFile, *cmd.OutFile, cmd.PageSelection, cmd.PageBoundaries, cmd.Conf)
+}
+
+// Crop adds crop boxes for selected pages of inFile and writes result to outFile.
+func Crop(cmd *Command) ([]string, error) {
+	return nil, api.CropFile(*cmd.InFile, *cmd.OutFile, cmd.PageSelection, cmd.Box, cmd.Conf)
 }

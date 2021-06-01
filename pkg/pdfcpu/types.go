@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/types"
 )
@@ -81,11 +80,17 @@ type StringSet map[string]bool
 // Object defines an interface for all Objects.
 type Object interface {
 	fmt.Stringer
+	Clone() Object
 	PDFString() string
 }
 
 // Boolean represents a PDF boolean object.
 type Boolean bool
+
+// Clone returns a clone of boolean.
+func (boolean Boolean) Clone() Object {
+	return boolean
+}
 
 func (boolean Boolean) String() string {
 	return fmt.Sprintf("%v", bool(boolean))
@@ -106,6 +111,11 @@ func (boolean Boolean) Value() bool {
 // Float represents a PDF float object.
 type Float float64
 
+// Clone returns a clone of f.
+func (f Float) Clone() Object {
+	return f
+}
+
 func (f Float) String() string {
 	// Use a precision of 2 for logging readability.
 	return fmt.Sprintf("%.2f", float64(f))
@@ -113,7 +123,7 @@ func (f Float) String() string {
 
 // PDFString returns a string representation as found in and written to a PDF file.
 func (f Float) PDFString() string {
-	// The max precision encountered so far has been 11 (fontType3 fontmatrix components).
+	// The max precision encountered so far has been 12 (fontType3 fontmatrix components).
 	return strconv.FormatFloat(f.Value(), 'f', 12, 64)
 }
 
@@ -126,6 +136,11 @@ func (f Float) Value() float64 {
 
 // Integer represents a PDF integer object.
 type Integer int
+
+// Clone returns a clone of i.
+func (i Integer) Clone() Object {
+	return i
+}
 
 func (i Integer) String() string {
 	return strconv.Itoa(int(i))
@@ -172,6 +187,11 @@ func (r Rectangle) ScaledHeight(w float64) float64 {
 	return w / r.AspectRatio()
 }
 
+// Dimensions returns r's dimensions.
+func (r Rectangle) Dimensions() Dim {
+	return Dim{r.Width(), r.Height()}
+}
+
 // Translate moves r by dx and dy.
 func (r *Rectangle) Translate(dx, dy float64) {
 	r.LL.Translate(dx, dy)
@@ -191,6 +211,52 @@ func (r Rectangle) CroppedCopy(margin float64) *Rectangle {
 		r.UR.X-margin,
 		r.UR.Y-margin,
 	)
+}
+
+func (r Rectangle) formatToInches() string {
+	return fmt.Sprintf("(%3.2f, %3.2f, %3.2f, %3.2f) w=%.2f h=%.2f ar=%.2f",
+		r.LL.X*userSpaceToInch,
+		r.LL.Y*userSpaceToInch,
+		r.UR.X*userSpaceToInch,
+		r.UR.Y*userSpaceToInch,
+		r.Width()*userSpaceToInch,
+		r.Height()*userSpaceToInch,
+		r.AspectRatio())
+}
+
+func (r Rectangle) formatToCentimetres() string {
+	return fmt.Sprintf("(%3.2f, %3.2f, %3.2f, %3.2f) w=%.2f h=%.2f ar=%.2f",
+		r.LL.X*userSpaceToCm,
+		r.LL.Y*userSpaceToCm,
+		r.UR.X*userSpaceToCm,
+		r.UR.Y*userSpaceToCm,
+		r.Width()*userSpaceToCm,
+		r.Height()*userSpaceToCm,
+		r.AspectRatio())
+}
+
+func (r Rectangle) formatToMillimetres() string {
+	return fmt.Sprintf("(%3.2f, %3.2f, %3.2f, %3.2f) w=%.2f h=%.2f ar=%.2f",
+		r.LL.X*userSpaceToMm,
+		r.LL.Y*userSpaceToMm,
+		r.UR.X*userSpaceToMm,
+		r.UR.Y*userSpaceToMm,
+		r.Width()*userSpaceToMm,
+		r.Height()*userSpaceToMm,
+		r.AspectRatio())
+}
+
+// Format returns r's details converted into unit.
+func (r Rectangle) Format(unit DisplayUnit) string {
+	switch unit {
+	case INCHES:
+		return r.formatToInches()
+	case CENTIMETRES:
+		return r.formatToCentimetres()
+	case MILLIMETRES:
+		return r.formatToMillimetres()
+	}
+	return r.String()
 }
 
 // Rect returns a new rectangle for given lower left and upper right corners.
@@ -228,6 +294,11 @@ func RectForFormat(f string) *Rectangle {
 
 // Name represents a PDF name object.
 type Name string
+
+// Clone returns a clone of nameObject.
+func (nameObject Name) Clone() Object {
+	return nameObject
+}
 
 func (nameObject Name) String() string {
 	return fmt.Sprintf("%s", string(nameObject))
@@ -272,6 +343,11 @@ func (nameObject Name) Value() string {
 // StringLiteral represents a PDF string literal object.
 type StringLiteral string
 
+// Clone returns a clone of stringLiteral.
+func (stringliteral StringLiteral) Clone() Object {
+	return stringliteral
+}
+
 func (stringliteral StringLiteral) String() string {
 	return fmt.Sprintf("(%s)", string(stringliteral))
 }
@@ -286,17 +362,6 @@ func (stringliteral StringLiteral) Value() string {
 	return string(stringliteral)
 }
 
-// DateString returns a string representation of t.
-func DateString(t time.Time) string {
-
-	_, tz := t.Zone()
-
-	return fmt.Sprintf("D:%d%02d%02d%02d%02d%02d+%02d'%02d'",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second(),
-		tz/60/60, tz/60%60)
-}
-
 ///////////////////////////////////////////////////////////////////////////////////
 
 // HexLiteral represents a PDF hex literal object.
@@ -307,6 +372,10 @@ func NewHexLiteral(b []byte) HexLiteral {
 	return HexLiteral(hex.EncodeToString(b))
 }
 
+// Clone returns a clone of hexliteral.
+func (hexliteral HexLiteral) Clone() Object {
+	return hexliteral
+}
 func (hexliteral HexLiteral) String() string {
 	return fmt.Sprintf("<%s>", string(hexliteral))
 }
@@ -345,6 +414,12 @@ func NewIndirectRef(objectNumber, generationNumber int) *IndirectRef {
 		GenerationNumber: Integer(generationNumber)}
 }
 
+// Clone returns a clone of ir.
+func (ir IndirectRef) Clone() Object {
+	ir2 := ir
+	return ir2
+}
+
 func (ir IndirectRef) String() string {
 	return fmt.Sprintf("(%s)", ir.PDFString())
 }
@@ -358,4 +433,81 @@ func (ir IndirectRef) PDFString() string {
 func (ir IndirectRef) Equals(indRef IndirectRef) bool {
 	return ir.ObjectNumber == indRef.ObjectNumber &&
 		ir.GenerationNumber == indRef.GenerationNumber
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+// DisplayUnit is the metric unit used to output paper sizes.
+type DisplayUnit int
+
+// Options for display unit in effect.
+const (
+	POINTS DisplayUnit = iota
+	INCHES
+	CENTIMETRES
+	MILLIMETRES
+)
+
+const (
+	userSpaceToInch = float64(1) / 72
+	userSpaceToCm   = 2.54 / 72
+	userSpaceToMm   = userSpaceToCm * 10
+
+	inchToUserSpace = 1 / userSpaceToInch
+	cmToUserSpace   = 1 / userSpaceToCm
+	mmToUserSpace   = 1 / userSpaceToMm
+)
+
+func toUserSpace(f float64, unit DisplayUnit) float64 {
+	switch unit {
+	case INCHES:
+		return f * inchToUserSpace
+	case CENTIMETRES:
+		return f * cmToUserSpace
+	case MILLIMETRES:
+		return f * mmToUserSpace
+
+	}
+	return f
+}
+
+// Dim represents the dimensions of a rectangular view medium
+// like a PDF page, a sheet of paper or an image grid
+// in user space, inches, centimetres or millimetres.
+type Dim struct {
+	Width, Height float64
+}
+
+// ToInches converts d to inches.
+func (d Dim) ToInches() Dim {
+	return Dim{d.Width * userSpaceToInch, d.Height * userSpaceToInch}
+}
+
+// ToCentimetres converts d to centimetres.
+func (d Dim) ToCentimetres() Dim {
+	return Dim{d.Width * userSpaceToCm, d.Height * userSpaceToCm}
+}
+
+// ToMillimetres converts d to centimetres.
+func (d Dim) ToMillimetres() Dim {
+	return Dim{d.Width * userSpaceToMm, d.Height * userSpaceToMm}
+}
+
+// AspectRatio returns the relation between width and height.
+func (d Dim) AspectRatio() float64 {
+	return d.Width / d.Height
+}
+
+// Landscape returns true if d is in landscape mode.
+func (d Dim) Landscape() bool {
+	return d.AspectRatio() > 1
+}
+
+// Portrait returns true if d is in portrait mode.
+func (d Dim) Portrait() bool {
+	return d.AspectRatio() < 1
+}
+
+func (d Dim) String() string {
+	return fmt.Sprintf("%fx%f points", d.Width, d.Height)
 }
