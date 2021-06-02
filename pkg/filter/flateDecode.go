@@ -73,6 +73,7 @@ func (f flate) Encode(r io.Reader) (io.Reader, error) {
 	log.Trace.Printf("EncodeFlate end: %d bytes written\n", written)
 
 	return &b, nil
+
 }
 
 // Decode implements decoding for a Flate filter.

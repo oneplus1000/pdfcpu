@@ -178,6 +178,7 @@ func (sd *StreamDict) Encode() error {
 	if sd.Raw, err = ioutil.ReadAll(c); err != nil {
 		return err
 	}
+
 	streamLength := int64(len(sd.Raw))
 	sd.StreamLength = &streamLength
 	sd.Update("Length", Integer(streamLength))
