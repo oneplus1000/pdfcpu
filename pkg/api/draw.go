@@ -93,6 +93,37 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 			return err
 		}
 		entry.Object = sm
+	} else if ar, ok := obj.(pdfcpu.Array); ok {
+		size := len(ar)
+		if size <= 0 {
+			return ErrDrawListNotSupport
+		}
+		o0 := ar[0]
+		ir, _ := o0.(pdfcpu.IndirectRef)
+		objNr = ir.ObjectNumber.Value()
+		genNr := ir.GenerationNumber.Value()
+		entry, _ := ctx.FindTableEntry(objNr, genNr)
+		sm, _ := (entry.Object).(pdfcpu.StreamDict)
+		err := drawLinesToStream(&sm, dl.Lines)
+		if err != nil {
+			return err
+		}
+		entry.Object = sm
+
+		if size-1 > 0 {
+			o1 := ar[size-1]
+			ir, _ := o1.(pdfcpu.IndirectRef)
+			objNr = ir.ObjectNumber.Value()
+			genNr := ir.GenerationNumber.Value()
+			entry, _ := ctx.FindTableEntry(objNr, genNr)
+			sm, _ := (entry.Object).(pdfcpu.StreamDict)
+			err := drawLinesToStream(&sm, dl.Lines)
+			if err != nil {
+				return err
+			}
+			entry.Object = sm
+		}
+
 	} else {
 		return ErrDrawListNotSupport
 	}

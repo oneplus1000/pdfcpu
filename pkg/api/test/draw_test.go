@@ -1,6 +1,7 @@
 package test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -8,15 +9,16 @@ import (
 
 func TestDrawLineFile(t *testing.T) {
 
-	//fileName := "Acroforms2.pdf"
-	//src := filepath.Join(inDir, fileName)
+	fileName := "Acroforms2.pdf"
+	src := filepath.Join(inDir, fileName)
 	//src := "/Users/oneplus/Code/Work/gopdf/test/out/result1_by_parsed_ttf_font.pdf"
 	//src := "/Users/oneplus/Code/Work/gopdf/test/out/number_of_pages_test.pdf"
-	src := "/Users/oneplus/Code/Work/ebooks-server/testing/pdf/ff.pdf"
-	//dest := filepath.Join(outDir, fileName)
+	//src := "/Users/oneplus/Code/Work/ebooks-server/testing/pdf/ff.pdf"
+	dest := filepath.Join(outDir, fileName)
 	//dest := "/Users/oneplus/Code/Work/gopdf/test/out/result1_by_parsed_ttf_font_out.pdf"
 	//dest := "/Users/oneplus/Code/Work/gopdf/test/out/number_of_pages_test_out.pdf"
-	dest := "/Users/oneplus/Code/Work/gopdf/test/out/ff_out.pdf"
+	//dest := "/Users/oneplus/Code/Work/gopdf/test/out/ff_out.pdf"
+	//dest := "/Users/oneplus/Code/Work/gopdf/test/out/Acroforms2.pdf"
 
 	draws := []api.DrawLine{
 		{
