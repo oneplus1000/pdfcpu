@@ -323,3 +323,44 @@ func CropFile(inFile, outFile string, selectedPages []string, b *pdfcpu.Box, con
 
 	return Crop(f1, f2, selectedPages, b, conf)
 }
+
+// ListBoxesStructFile returns a list of page boundaries for selected pages of inFile.
+func ListBoxesStructFile(inFile string, pb *pdfcpu.PageBoundaries, conf *pdfcpu.Configuration) ([]pdfcpu.PageBoundaries, error) {
+	f, err := os.Open(inFile)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	if pb == nil {
+		pb = &pdfcpu.PageBoundaries{}
+		pb.SelectAll()
+	}
+	log.CLI.Printf("listing %s for %s\n", pb, inFile)
+	return ListBoxesStruct(f, pb, conf)
+}
+
+// ListBoxesStruct returns a list of page boundaries for selected pages of rs.
+func ListBoxesStruct(rs io.ReadSeeker, pb *pdfcpu.PageBoundaries, conf *pdfcpu.Configuration) ([]pdfcpu.PageBoundaries, error) {
+	if rs == nil {
+		return nil, errors.New("pdfcpu: ListBoxes: missing rs")
+	}
+	if conf == nil {
+		conf = pdfcpu.NewDefaultConfiguration()
+		conf.Cmd = pdfcpu.LISTBOXES
+	}
+	ctx, _, _, _, err := readValidateAndOptimize(rs, conf, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.EnsurePageCount(); err != nil {
+		return nil, err
+	}
+
+	pbs, err := ctx.PageBoundaries()
+	if err != nil {
+		return nil, err
+	}
+
+	return pbs, nil
+}

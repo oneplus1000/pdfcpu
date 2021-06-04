@@ -93,6 +93,7 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 			return err
 		}
 		entry.Object = sm
+		//fmt.Printf("AAA\n")
 	} else if ar, ok := obj.(pdfcpu.Array); ok {
 		size := len(ar)
 		if size <= 0 {
@@ -123,7 +124,7 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 			}
 			entry.Object = sm
 		}
-
+		//fmt.Printf("BBB\n")
 	} else {
 		return ErrDrawListNotSupport
 	}
@@ -136,11 +137,14 @@ func drawLinesToStream(sd *pdfcpu.StreamDict, lines []Line) error {
 	if err != nil {
 		return err
 	}
+
+	//sd.Content = []byte{}
 	for _, line := range lines {
 		l0 := fmt.Sprintf("%.2f w\n", line.LineWidth)
 		l1 := fmt.Sprintf("%0.2f %0.2f m %0.2f %0.2f l S\n", line.X1, line.Y1, line.X2, line.Y2)
 		sd.Content = append(sd.Content, l0...)
 		sd.Content = append(sd.Content, l1...)
+		//fmt.Printf("%s\n", sd.Content)
 	}
 	return sd.Encode()
 }
