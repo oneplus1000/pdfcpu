@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"time"
@@ -8,6 +9,10 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pkg/errors"
 )
+
+const colorTypeStroke = "RG"
+
+//const colorTypeFill = "rg"
 
 //ErrDrawListNotSupport can not draw in pdf
 var ErrDrawListNotSupport = errors.New("draw line not support")
@@ -17,6 +22,7 @@ type DrawLine struct {
 	Lines      []Line
 }
 type Line struct {
+	Color     ColorRGB
 	LineWidth float64
 	X1, Y1    float64
 	X2, Y2    float64
@@ -138,13 +144,30 @@ func drawLinesToStream(sd *pdfcpu.StreamDict, lines []Line) error {
 		return err
 	}
 
-	//sd.Content = []byte{}
+	buff := bytes.NewBuffer(sd.Content)
+
 	for _, line := range lines {
+		writeStrokeColor(buff, line.Color, colorTypeStroke)
 		l0 := fmt.Sprintf("%.2f w\n", line.LineWidth)
 		l1 := fmt.Sprintf("%0.2f %0.2f m %0.2f %0.2f l S\n", line.X1, line.Y1, line.X2, line.Y2)
-		sd.Content = append(sd.Content, l0...)
-		sd.Content = append(sd.Content, l1...)
-		//fmt.Printf("%s\n", sd.Content)
+		buff.WriteString(l0)
+		buff.WriteString(l1)
 	}
+	sd.Content = buff.Bytes()
 	return sd.Encode()
+}
+
+func writeStrokeColor(buff *bytes.Buffer, rgb ColorRGB, colorType string) error {
+	l := fmt.Sprintf("%.3f %.3f %.3f %s\n", float64(rgb.R)/255, float64(rgb.G)/255, float64(rgb.B)/255, colorType)
+	_, err := buff.WriteString(l)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type ColorRGB struct {
+	R int
+	G int
+	B int
 }
