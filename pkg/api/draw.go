@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
@@ -22,6 +23,7 @@ type DrawLine struct {
 	Lines      []Line
 }
 type Line struct {
+	Alpha     float64 //0 to 1
 	Color     ColorRGB
 	LineWidth float64
 	X1, Y1    float64
@@ -48,10 +50,25 @@ func DrawLineFile(src string, dest string, draws []DrawLine, conf *pdfcpu.Config
 		fromStart = *conf.ForceCreationDate
 	}
 
+	conf.WriteXRefStream = false   //TODO: ลบด้วย
+	conf.WriteObjectStream = false //TODO: ลบด้วย
 	ctx, _, _, err := readAndValidate(f, conf, fromStart)
 	if err != nil {
 		return errors.Wrap(err, "readValidateAndOptimize fail")
 	}
+	/*
+		_, err = ctx.CreateExtGStateForTransparent(0.1)
+		if err != nil {
+			return errors.Wrap(err, "ctx.CreateExtGStateForTransparent(0.1) fail")
+		}
+
+		dic, _, err := ctx.PageDict(0, false)
+		if err != nil {
+			return errors.Wrap(err, "ctx.PageDict(1, false) fail")
+		}
+
+		_ = dic
+	*/
 
 	for _, d := range draws {
 		err := drawLine(ctx, d)
@@ -66,9 +83,60 @@ func DrawLineFile(src string, dest string, draws []DrawLine, conf *pdfcpu.Config
 	}
 	defer fout.Close()
 
+	//debug, _ := ctx.FindTableEntry(13, 0)
+	//debug.Compressed = false
+	//fmt.Printf("DE %s\n", debug.Object.String())
+
 	if err = WriteContext(ctx, fout); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func findInResources(ctx *pdfcpu.Context, pageDict pdfcpu.Dict) error {
+	//var entryRes *pdfcpu.XRefTableEntry
+	var entryRes *pdfcpu.XRefTableEntry
+	resDict, found := pageDict.Find("Resources")
+	if found {
+		if ir, ok := resDict.(pdfcpu.IndirectRef); ok {
+			objNr := ir.ObjectNumber.Value()
+			genNr := ir.GenerationNumber.Value()
+			entryRes, _ = ctx.FindTableEntry(objNr, genNr)
+			resDict = entryRes.Object
+		}
+	} else {
+		//TODO: ถ้าไม่เจอเอาไง???
+	}
+
+	extGState, _ := ctx.CreateExtGStateForTransparent(0.5)
+
+	if rd, ok := resDict.(pdfcpu.Dict); ok {
+		gsID := "GS0"
+		o, found := rd.Find("ExtGState")
+		if !found {
+			rd.Insert("ExtGState", pdfcpu.Dict(map[string]pdfcpu.Object{"": *extGState}))
+		} else {
+
+			d, _ := ctx.DereferenceDict(o)
+			for i := 0; i < 1000; i++ {
+				gsID = "GS" + strconv.Itoa(i)
+				if _, found := d.Find(gsID); !found {
+					break
+				}
+			}
+
+			d.Insert(gsID, *extGState)
+
+			//debug
+			fmt.Printf("String %s\n", resDict.String())
+			//debug, _ := ctx.FindTableEntry(13, 0)
+			//fmt.Printf("DE %s\n", debug.Object.String())
+		}
+		entryRes.Object = rd
+	}
+
+	pageDict.Update("Resources", resDict)
 
 	return nil
 }
@@ -79,6 +147,15 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 	if err != nil {
 		return err
 	}
+
+	//find Resources
+	err = findInResources(ctx, dict)
+	if err != nil {
+		return err
+	}
+
+	//end find Resources
+
 	obj, found := dict.Find("Contents")
 	if !found {
 		return ErrDrawListNotSupport
@@ -148,8 +225,10 @@ func drawLinesToStream(sd *pdfcpu.StreamDict, lines []Line) error {
 
 	for _, line := range lines {
 		writeStrokeColor(buff, line.Color, colorTypeStroke)
+
 		l0 := fmt.Sprintf("%.2f w\n", line.LineWidth)
 		l1 := fmt.Sprintf("%0.2f %0.2f m %0.2f %0.2f l S\n", line.X1, line.Y1, line.X2, line.Y2)
+		//buff.WriteString("/GS0 gs\n")
 		buff.WriteString(l0)
 		buff.WriteString(l1)
 	}

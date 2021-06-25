@@ -1498,6 +1498,18 @@ func (ctx *Context) createExtGStateForStamp(opacity float64) (*IndirectRef, erro
 	return ctx.IndRefForNewObject(d)
 }
 
+func (ctx *Context) CreateExtGStateForTransparent(opacity float64) (*IndirectRef, error) {
+	d := Dict(
+		map[string]Object{
+			"Type": Name("ExtGState"),
+			"CA":   Float(opacity),
+			"ca":   Float(opacity),
+			"BM":   Name("ColorBurn"),
+		},
+	)
+	return ctx.IndRefForNewObject(d)
+}
+
 func (ctx *Context) insertPageResourcesForWM(pageDict Dict, wm *Watermark, gsID, xoID string) error {
 	resourceDict := Dict(
 		map[string]Object{
