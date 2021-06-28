@@ -25,8 +25,10 @@ import (
 
 func TestSplitSpan1(t *testing.T) {
 	msg := "TestSplitSpan1"
-	fileName := "Acroforms2.pdf"
-	inFile := filepath.Join(inDir, fileName)
+	//fileName := "Acroforms2.pdf"
+	//inFile := filepath.Join(inDir, fileName)
+	inFile := "/Users/oneplus/Code/Work/ebook-analysis/temp/pdfs/OK_P84CZRIAKHDCFAF8.pdf"
+	outDir := "/Users/oneplus/Desktop/temp"
 
 	// Create single page files of inFile in outDir.
 	span := 1

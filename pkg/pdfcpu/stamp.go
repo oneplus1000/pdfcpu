@@ -1504,7 +1504,7 @@ func (ctx *Context) CreateExtGStateForTransparent(opacity float64) (*IndirectRef
 			"Type": Name("ExtGState"),
 			"CA":   Float(opacity),
 			"ca":   Float(opacity),
-			"BM":   Name("ColorBurn"),
+			//"BM":   Name("ColorBurn"),
 		},
 	)
 	return ctx.IndRefForNewObject(d)

@@ -25,6 +25,7 @@ func TestDrawLineFile(t *testing.T) {
 			PageNumber: 1,
 			Lines: []api.Line{
 				{
+					Alpha: 0.9,
 					Color: api.ColorRGB{
 						R: 255,
 						G: 0,
@@ -36,6 +37,12 @@ func TestDrawLineFile(t *testing.T) {
 					X2:        800,
 					Y2:        800,
 				}, {
+					Alpha: 0.2,
+					Color: api.ColorRGB{
+						R: 0,
+						G: 0,
+						B: 255,
+					},
 					LineWidth: 20.0,
 					X1:        100,
 					Y1:        10,
