@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/oneplus1000/pdfcpu/pkg/pdfcpu"
 	"github.com/pkg/errors"
 )
 

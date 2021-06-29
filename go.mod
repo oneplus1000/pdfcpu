@@ -1,4 +1,4 @@
-module github.com/pdfcpu/pdfcpu
+module github.com/oneplus1000/pdfcpu
 
 go 1.15
 
