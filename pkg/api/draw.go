@@ -13,10 +13,9 @@ import (
 
 const colorTypeStroke = "RG"
 
-//const colorTypeFill = "rg"
-
 //ErrDrawListNotSupport can not draw in pdf
 var ErrDrawListNotSupport = errors.New("draw line not support")
+var ErrResourcesNotFound = errors.New("resources not found")
 
 type DrawLine struct {
 	PageNumber int
@@ -50,8 +49,8 @@ func DrawLineFile(src string, dest string, draws []DrawLine, conf *pdfcpu.Config
 		fromStart = *conf.ForceCreationDate
 	}
 
-	conf.WriteXRefStream = false   //TODO: ลบด้วย
-	conf.WriteObjectStream = false //TODO: ลบด้วย
+	//conf.WriteXRefStream = false   //TODO: ลบด้วย
+	//conf.WriteObjectStream = false //TODO: ลบด้วย
 	ctx, _, _, err := readAndValidate(f, conf, fromStart)
 	if err != nil {
 		return errors.Wrap(err, "readValidateAndOptimize fail")
@@ -69,10 +68,6 @@ func DrawLineFile(src string, dest string, draws []DrawLine, conf *pdfcpu.Config
 		return errors.Wrapf(err, "os.Open(%s) fail", dest)
 	}
 	defer fout.Close()
-
-	//debug, _ := ctx.FindTableEntry(13, 0)
-	//debug.Compressed = false
-	//fmt.Printf("DE %s\n", debug.Object.String())
 
 	if err = WriteContext(ctx, fout); err != nil {
 		return err
@@ -94,9 +89,10 @@ func setupExtGStateToRes(ctx *pdfcpu.Context, pageDict pdfcpu.Dict, mapOfAlphaAn
 		}
 	} else {
 		//TODO: ถ้าไม่เจอเอาไง???
+		return ErrResourcesNotFound
 	}
 
-	for key, _ := range mapOfAlphaAndIDs {
+	for key := range mapOfAlphaAndIDs {
 		extGState, _ := ctx.CreateExtGStateForTransparent(key)
 		if rd, ok := resDict.(pdfcpu.Dict); ok {
 			gsID := "GS0"
@@ -119,9 +115,8 @@ func setupExtGStateToRes(ctx *pdfcpu.Context, pageDict pdfcpu.Dict, mapOfAlphaAn
 			}
 			mapOfAlphaAndIDs[key] = gsID
 		}
-
 	}
-	//fmt.Printf("resDict : %+v\n", resDict)
+
 	pageDict.Update("Resources", resDict)
 
 	return nil
@@ -146,8 +141,6 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 	}
 	//end setup extgsate
 
-	//fmt.Printf("mapOfAlphaAndIDs: %+v\n", mapOfAlphaAndIDs)
-
 	obj, found := dict.Find("Contents")
 	if !found {
 		return ErrDrawListNotSupport
@@ -168,7 +161,6 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 			return err
 		}
 		entry.Object = sm
-		//fmt.Printf("AAA\n")
 	} else if ar, ok := obj.(pdfcpu.Array); ok {
 		size := len(ar)
 		if size <= 0 {
@@ -199,7 +191,6 @@ func drawLine(ctx *pdfcpu.Context, dl DrawLine) error {
 			}
 			entry.Object = sm
 		}
-		//fmt.Printf("BBB\n")
 	} else {
 		return ErrDrawListNotSupport
 	}
@@ -218,11 +209,8 @@ func drawLinesToStream(
 	}
 
 	buff := bytes.NewBuffer(sd.Content)
-
 	for _, line := range lines {
-
 		writeStrokeColor(buff, line.Color, colorTypeStroke)
-
 		l0 := fmt.Sprintf("%.2f w\n", line.LineWidth)
 		l1 := fmt.Sprintf("%0.2f %0.2f m %0.2f %0.2f l S\n", line.X1, line.Y1, line.X2, line.Y2)
 		buff.WriteString(gsString(mapOfAlphaAndIDs, line.Alpha))
@@ -230,7 +218,7 @@ func drawLinesToStream(
 		buff.WriteString(l1)
 	}
 	sd.Content = buff.Bytes()
-	//fmt.Printf("sd.Content: %s", string(sd.Content))
+
 	return sd.Encode()
 }
 
